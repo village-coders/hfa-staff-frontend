@@ -414,6 +414,16 @@ export function AppProvider({ children }) {
     }
   };
 
+  const handleMarkAllRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    try {
+      await fetch(`${API_BASE_URL}/notifications/read-all`, {
+        method: "PATCH",
+        headers: apiHeaders(),
+      });
+    } catch { /* UI already updated */ }
+  };
+
   const handleNotificationClick = (n, navigate) => {
     setNotifications((prev) =>
       prev.map((item) => (item.id === n.id ? { ...item, read: true } : item))
