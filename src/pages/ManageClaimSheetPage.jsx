@@ -168,9 +168,8 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in">
-      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh] animate-scale-in">
+  return (
+    <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-5xl shadow-xl overflow-hidden flex flex-col mx-auto animate-scale-in">
       {/* Top Header */}
       <div className="bg-gradient-to-r from-[#007A87] via-[#054D66] to-[#031B38] px-6 py-5 sm:px-8 text-white flex items-center justify-between relative overflow-hidden flex-shrink-0">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
@@ -771,7 +770,5 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
         </div>
       </div>
     </div>
-    </div>,
-    document.body
   );
 }

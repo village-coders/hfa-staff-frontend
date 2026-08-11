@@ -95,13 +95,7 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
   const { openClaimSheet, openAddAsset } = useApp();
 
   const handleItemClick = (key) => {
-    if (key === "manage-claim-sheet") {
-      openClaimSheet();
-    } else if (key === "add-new-asset") {
-      openAddAsset();
-    } else {
-      navigate(VIEW_TO_PATH[key] || "/dashboard");
-    }
+    navigate(VIEW_TO_PATH[key] || "/dashboard");
     setMobileOpen(false);
   };
 

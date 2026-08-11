@@ -39,7 +39,7 @@ export default function AssetsPage() {
           <p className="text-xs text-slate-500 font-medium">{assets.length} total asset records</p>
         </div>
         <button
-          onClick={openAddAsset}
+          onClick={() => navigate("/assets/add")}
           className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
         >
           <PlusCircle size={15} />

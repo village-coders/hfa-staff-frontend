@@ -3,15 +3,11 @@ import { Outlet, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { useApp } from "../../context/AppContext";
-import ManageClaimSheetPage from "../../pages/ManageClaimSheetPage";
-import AddNewAssetPage from "../../pages/AddNewAssetPage";
 
 export default function AppLayout() {
   const {
     loggedInUser, role, currentUser, claims, assets, users,
     notifications, handleLogout, handleMarkAllRead,
-    isClaimSheetOpen, closeClaimSheet,
-    isAddAssetOpen, closeAddAsset,
   } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -48,14 +44,6 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
-
-      {/* Global Modals rendered via portal — triggered by sidebar or buttons */}
-      {isClaimSheetOpen && (
-        <ManageClaimSheetPage onClose={closeClaimSheet} />
-      )}
-      {isAddAssetOpen && (
-        <AddNewAssetPage onClose={closeAddAsset} />
-      )}
     </div>
   );
 }
