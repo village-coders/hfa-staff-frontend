@@ -34,7 +34,7 @@ const T = {
   gray900: "#0F172A",
 };
 
-const API_BASE_URL ="https://staff-portal-backend-mrxv.onrender.com/api/v1";
+const API_BASE_URL = "https://staff-portal-backend-mrxv.onrender.com/api/v1";
 
 const STATUS = {
   new:                   { label: "New",                   color: "#1D4ED8", bg: "#DBEAFE" },
@@ -1027,7 +1027,7 @@ function DashboardView({ role, claims, assets, users, currentUser, onNavigate, o
           </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs whitespace-nowrap">
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <th className="text-left px-5 py-3.5 whitespace-nowrap">Claim ID</th>
@@ -1334,7 +1334,7 @@ function ClaimTrackingView({ claim, onBack }) {
 /* ---------------------------------------------------------------- */
 /* CLAIM VIEWS                                                       */
 /* ---------------------------------------------------------------- */
-function ClaimActions({ claim, view, role, onTransition, onOpenFeedback, onDelete }) {
+function ClaimActions({ claim, view, role, onTransition, onOpenFeedback, onDelete, onViewDetails }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -1381,7 +1381,7 @@ function ClaimActions({ claim, view, role, onTransition, onOpenFeedback, onDelet
   if (role === "admin" && view !== "manage-claim-sheet") {
     buttons.push(btn("Delete", () => onDelete(claim.id), { color: "#B91C1C" }));
   }
-  buttons.push(btn("View Details", () => {}, { color: T.gray700 }));
+  buttons.push(btn("View Details", () => onViewDetails && onViewDetails(claim), { color: T.gray700 }));
 
   return (
     <div className="relative inline-block text-left" ref={ref}>
@@ -1410,6 +1410,7 @@ function ClaimListView({ view, role, claims, onTransition, onDelete, currentUser
   const [search, setSearch] = useState("");
   const [feedbackClaim, setFeedbackClaim] = useState(null);
   const [feedbackText, setFeedbackText] = useState("");
+  const [selectedClaim, setSelectedClaim] = useState(null);
 
   let filtered = view === "all-claims-list"
     ? claims
@@ -1479,8 +1480,8 @@ function ClaimListView({ view, role, claims, onTransition, onDelete, currentUser
           <EmptyState icon={item.icon} title="Nothing here yet" subtitle={`No claims currently sit in ${item.label.toLowerCase()}.`} />
         ) : (
           <>
-            <div>
-              <table className="w-full text-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs whitespace-nowrap">
                 <thead>
                   <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                     <th className="text-left px-5 py-3">Claim ID</th>
@@ -1502,7 +1503,7 @@ function ClaimListView({ view, role, claims, onTransition, onDelete, currentUser
                       <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">{c.date}</td>
                       <td className="px-5 py-3.5"><StatusBadge status={c.status} /></td>
                       <td className="px-5 py-3.5">
-                        <ClaimActions claim={c} view={view} role={role} onTransition={onTransition} onOpenFeedback={setFeedbackClaim} onDelete={onDelete} />
+                        <ClaimActions claim={c} view={view} role={role} onTransition={onTransition} onOpenFeedback={setFeedbackClaim} onDelete={onDelete} onViewDetails={setSelectedClaim} />
                       </td>
                     </tr>
                   ))}
@@ -1513,6 +1514,64 @@ function ClaimListView({ view, role, claims, onTransition, onDelete, currentUser
           </>
         )}
       </div>
+
+      {selectedClaim && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 animate-scale-in space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center">
+                  <FileEdit size={20} />
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                    {selectedClaim.id}
+                  </span>
+                  <h3 className="font-bold text-base text-slate-900 mt-0.5">{selectedClaim.title}</h3>
+                </div>
+              </div>
+              <button onClick={() => setSelectedClaim(null)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-[10px] text-slate-400 uppercase font-semibold">Claimant</p>
+                <p className="font-bold text-slate-800 mt-1">{selectedClaim.claimant}</p>
+              </div>
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-[10px] text-slate-400 uppercase font-semibold">Department</p>
+                <p className="font-bold text-slate-800 mt-1">{selectedClaim.dept}</p>
+              </div>
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-[10px] text-slate-400 uppercase font-semibold">Filing Date</p>
+                <p className="font-bold text-slate-800 mt-1">{selectedClaim.date}</p>
+              </div>
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-[10px] text-slate-400 uppercase font-semibold">Status</p>
+                <div className="mt-1"><StatusBadge status={selectedClaim.status} /></div>
+              </div>
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 col-span-2">
+                <p className="text-[10px] text-slate-400 uppercase font-semibold">Total Amount</p>
+                <p className="font-bold text-teal-700 text-lg mt-1">{fmtN(selectedClaim.amount)}</p>
+              </div>
+              {selectedClaim.note && (
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 col-span-2">
+                  <p className="text-[10px] text-slate-400 uppercase font-semibold">Officer / Feedback Note</p>
+                  <p className="font-medium text-slate-700 mt-1">{selectedClaim.note}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end pt-2 border-t border-slate-100">
+              <button onClick={() => setSelectedClaim(null)} className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-md transition-colors">
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {feedbackClaim && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1949,7 +2008,7 @@ function ManageClaimSheet({ onSubmitClaim, currentUser, onClose }) {
               </div>
 
               <div className="overflow-x-auto rounded-2xl border border-slate-200">
-                <table className="w-full text-xs">
+                <table className="w-full text-xs whitespace-nowrap">
                   <thead>
                     <tr className="bg-[#007A87] text-white font-semibold">
                       <th className="text-left px-4 py-3.5 min-w-[120px] whitespace-nowrap">Type</th>
@@ -2288,7 +2347,7 @@ function ManageAssetView({ assets }) {
       </div>
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs whitespace-nowrap">
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <th className="text-left px-5 py-3">Asset ID</th>
@@ -3015,7 +3074,7 @@ function UsersView({ users, onAddUser, onUpdateUser, onDeleteUser, role }) {
       {/* User Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs whitespace-nowrap">
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <th className="text-left px-5 py-3">Name</th>
