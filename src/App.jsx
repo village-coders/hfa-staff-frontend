@@ -1542,7 +1542,7 @@ function ClaimListView({ view, role, claims, onTransition, onDelete, currentUser
         )}
       </div>
 
-      {selectedClaim && (
+      {selectedClaim && createPortal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 animate-scale-in space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -1597,10 +1597,11 @@ function ClaimListView({ view, role, claims, onTransition, onDelete, currentUser
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {feedbackClaim && (
+      {feedbackClaim && createPortal(
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl border border-slate-200 animate-scale-in">
             <h3 className="font-bold text-sm text-slate-900 mb-1">Send Feedback</h3>
@@ -1617,7 +1618,8 @@ function ClaimListView({ view, role, claims, onTransition, onDelete, currentUser
               <button onClick={submitFeedback} className="px-4 py-2 text-xs font-semibold rounded-xl text-white bg-teal-600 hover:bg-teal-700">Send Feedback</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -2284,7 +2286,7 @@ function ManageClaimSheet({ onSubmitClaim, currentUser, onClose }) {
           )}
         </div>
 
-        {activeNoteModalItem && (
+        {activeNoteModalItem && createPortal(
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-60 flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-scale-in space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -2301,7 +2303,8 @@ function ManageClaimSheet({ onSubmitClaim, currentUser, onClose }) {
                 <button type="button" onClick={saveNoteModal} className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-md">Save Note</button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         <div className="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-between flex-shrink-0">
@@ -2419,7 +2422,7 @@ function ManageAssetView({ assets }) {
       </div>
 
       {/* Asset Detail Popup Modal */}
-      {selectedAsset && (
+      {selectedAsset && createPortal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-scale-in space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -2480,7 +2483,8 @@ function ManageAssetView({ assets }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -3153,7 +3157,7 @@ function UsersView({ users, onAddUser, onUpdateUser, onDeleteUser, role }) {
       </div>
 
       {/* Edit User Modal */}
-      {editingUser && (
+      {editingUser && createPortal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <form onSubmit={submitEdit} className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-scale-in space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -3188,7 +3192,8 @@ function UsersView({ users, onAddUser, onUpdateUser, onDeleteUser, role }) {
               <button type="submit" className="px-5 py-2 text-xs font-semibold rounded-xl text-white bg-teal-600 hover:bg-teal-700 shadow-md">Save Changes</button>
             </div>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
