@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   LayoutDashboard, Bell, BookOpen, Users as UsersIcon, LogOut, ChevronDown,
   ChevronRight, Search, Plus, CheckCircle2, XCircle, Clock3, RotateCcw,
@@ -46,7 +47,7 @@ const STATUS = {
   rejected:              { label: "Rejected",                color: "#B91C1C", bg: "#FEE2E2" },
 };
 
-const fmtN = (n) => "£" + n.toLocaleString();
+const fmtN = (n) => "£" + (Number(n) || 0).toLocaleString();
 
 /* ---------------------------------------------------------------- */
 /* REAL BACKEND DATA STRUCTURES                                      */
@@ -1336,13 +1337,35 @@ function ClaimTrackingView({ claim, onBack }) {
 /* ---------------------------------------------------------------- */
 function ClaimActions({ claim, view, role, onTransition, onOpenFeedback, onDelete, onViewDetails }) {
   const [open, setOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
   const ref = useRef(null);
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const handler = (e) => { 
+      if (ref.current && !ref.current.contains(e.target) && !e.target.closest('.action-popup-menu')) {
+        setOpen(false);
+      }
+    };
     if (open) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  useEffect(() => {
+    const handleScroll = () => setOpen(false);
+    if (open) window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, [open]);
+
+  const toggleOpen = (e) => {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right
+      });
+    }
+    setOpen(!open);
+  };
 
   const btn = (label, onClick, style) => (
     <button
@@ -1386,19 +1409,23 @@ function ClaimActions({ claim, view, role, onTransition, onOpenFeedback, onDelet
   return (
     <div className="relative inline-block text-left" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={toggleOpen}
         className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm"
       >
         <MoreVertical size={15} className="text-slate-600" />
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 py-1 overflow-hidden flex flex-col animate-scale-in">
+          <div 
+            className="action-popup-menu fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 py-1 overflow-hidden flex flex-col animate-scale-in"
+            style={{ top: dropdownPos.top, right: dropdownPos.right, width: '13rem' }}
+          >
             {buttons}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
