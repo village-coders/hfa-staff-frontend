@@ -1,4 +1,4 @@
-import React from "react";
+import logo from "../../logo.jpg";
 
 export default function LoadingScreen() {
   return (
@@ -10,12 +10,8 @@ export default function LoadingScreen() {
       {/* Logo / brand mark */}
       <div className="relative z-10 flex flex-col items-center gap-6">
         <div className="relative">
-          <div className="w-20 h-20 rounded-3xl bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center shadow-2xl">
-            <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="42" height="42" rx="10" fill="none" />
-              <path d="M8 34V8h10l10 13L38 8v26" stroke="#99F6E4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M8 21h30" stroke="#5EEAD4" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+          <div className="w-20 h-20 rounded-3xl bg-white border border-slate-100 flex items-center justify-center shadow-2xl p-1 overflow-hidden">
+            <img src={logo} alt="Halal Food Authority Logo" className="w-full h-full object-contain rounded-2xl" />
           </div>
           {/* Spinner ring */}
           <div
