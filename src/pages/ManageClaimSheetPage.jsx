@@ -91,7 +91,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
   const addFiles = (newFilesList) => { setUploadedFiles((prev) => [...prev, ...newFilesList.map((f) => ({ id: Date.now() + Math.random(), file: f, name: f.name, size: (f.size / 1024).toFixed(1) + " KB" }))]); };
   const removeFile = (id) => { setUploadedFiles((prev) => prev.filter((f) => f.id !== id)); };
 
-  const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€", NGN: "₦" };
+  const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€" };
   const fmtCurrency = (val, symbol = "£") => `${symbol}${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const primaryCurrency = items[0]?.currency || "GBP";
@@ -493,7 +493,6 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                           <option value="GBP">GBP (£)</option>
                           <option value="USD">USD ($)</option>
                           <option value="EUR">EUR (€)</option>
-                          <option value="NGN">NGN (₦)</option>
                         </select>
                       </td>
                       <td className="p-3">
