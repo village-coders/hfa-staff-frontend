@@ -10,7 +10,7 @@ import { PATH_TO_VIEW } from "../constants/menu";
 export default function AssetsPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { assets } = useApp();
+  const { assets, openAddAsset } = useApp();
 
   const viewKey = PATH_TO_VIEW[location.pathname] || "manage-asset";
   const [page, setPage] = useState(1);
@@ -39,7 +39,7 @@ export default function AssetsPage() {
           <p className="text-xs text-slate-500 font-medium">{assets.length} total asset records</p>
         </div>
         <button
-          onClick={() => navigate("/assets/add")}
+          onClick={openAddAsset}
           className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
         >
           <PlusCircle size={15} />

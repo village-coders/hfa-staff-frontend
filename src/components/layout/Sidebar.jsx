@@ -6,10 +6,10 @@ import {
 } from "lucide-react";
 import { CLAIM_ITEMS, ASSET_ITEMS, MENU_ACCESS, VIEW_TO_PATH } from "../../constants/menu";
 import { T } from "../../constants/theme";
+import { useApp } from "../../context/AppContext";
 import logo from "../../logo.jpg";
 
-function NavSection({ icon: Icon, label, items, access = [], currentViewKey, collapsed, counts = {}, sectionCount, open, onToggle }) {
-  const navigate = useNavigate();
+function NavSection({ icon: Icon, label, items, access = [], currentViewKey, collapsed, counts = {}, sectionCount, open, onToggle, onItemClick }) {
   const visible = items.filter((it) => (access || []).includes(it.key));
   if (visible.length === 0) return null;
 
@@ -22,7 +22,7 @@ function NavSection({ icon: Icon, label, items, access = [], currentViewKey, col
           return (
             <button
               key={it.key}
-              onClick={() => navigate(VIEW_TO_PATH[it.key] || "/dashboard")}
+              onClick={() => onItemClick(it.key)}
               title={it.label}
               className={`w-full flex items-center justify-center p-3 rounded-xl transition-all ${
                 active
@@ -64,7 +64,7 @@ function NavSection({ icon: Icon, label, items, access = [], currentViewKey, col
             return (
               <button
                 key={it.key}
-                onClick={() => navigate(VIEW_TO_PATH[it.key] || "/dashboard")}
+                onClick={() => onItemClick(it.key)}
                 className={`w-full flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-medium transition-all ${
                   active
                     ? "bg-[#14B8A6]/90 text-white font-semibold shadow-sm"
@@ -92,6 +92,18 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
   const [assetOpen, setAssetOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const { openClaimSheet, openAddAsset } = useApp();
+
+  const handleItemClick = (key) => {
+    if (key === "manage-claim-sheet") {
+      openClaimSheet();
+    } else if (key === "add-new-asset") {
+      openAddAsset();
+    } else {
+      navigate(VIEW_TO_PATH[key] || "/dashboard");
+    }
+    setMobileOpen(false);
+  };
 
   const access = MENU_ACCESS[role] || MENU_ACCESS.user || [];
 
@@ -203,6 +215,7 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
               counts={claimCounts}
               sectionCount={claims.length}
               collapsed={collapsed}
+              onItemClick={handleItemClick}
             />
 
             {collapsed && (
@@ -225,6 +238,7 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
               counts={assetCounts}
               sectionCount={assets.length}
               collapsed={collapsed}
+              onItemClick={handleItemClick}
             />
 
             {access.includes("users") && (

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   X, CheckCircle2, ChevronRight, ChevronLeft, Plus, PlusCircle
 } from "lucide-react";
@@ -14,8 +15,8 @@ const ASSET_WIZARD_STEPS = [
 
 const genSerial = () => "SN-AST-" + Math.floor(10000000 + Math.random() * 90000000);
 
-export default function AddNewAssetPage() {
-  const { handleAddAsset } = useApp();
+export default function AddNewAssetPage({ onClose: propOnClose }) {
+  const { handleAddAsset, closeAddAsset } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -35,9 +36,15 @@ export default function AddNewAssetPage() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const fileInputRef = useRef(null);
 
-  const handleClose = () => { navigate("/assets"); };
+  const handleClose = () => {
+    if (propOnClose) propOnClose();
+    if (closeAddAsset) closeAddAsset();
+    if (window.location.pathname === "/assets/add") navigate("/assets");
+  };
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -92,11 +99,14 @@ export default function AddNewAssetPage() {
     if (step > 1) setStep(step - 1);
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     if (e) e.preventDefault();
     if (!form.assetName) return;
 
-    handleAddAsset({
+    setSubmitting(true);
+    setSubmitError("");
+
+    const result = await handleAddAsset({
       name: form.assetName,
       category: form.assetType || "Equipment",
       dept: "Operations",
@@ -108,15 +118,22 @@ export default function AddNewAssetPage() {
       sellerName: form.sellerName || "",
     });
 
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      navigate("/assets");
-    }, 1500);
+    setSubmitting(false);
+
+    if (result && result.success) {
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        handleClose();
+      }, 1500);
+    } else {
+      setSubmitError(result?.message || "Asset registration failed. Please try again.");
+    }
   };
 
-  return (
-    <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-4xl shadow-xl overflow-hidden flex flex-col mx-auto animate-scale-in">
+  return createPortal(
+    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in">
+      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh] animate-scale-in">
       {/* Banner Header */}
       <div className="bg-gradient-to-r from-[#007A87] via-[#054D66] to-[#031B38] px-6 py-5 sm:px-8 text-white flex items-center justify-between relative overflow-hidden flex-shrink-0">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
@@ -477,6 +494,11 @@ export default function AddNewAssetPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {submitError && (
+            <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-3 py-1 rounded-lg border border-rose-200">
+              {submitError}
+            </span>
+          )}
           <span className="text-xs font-semibold text-slate-400 hidden sm:inline">
             Step {step} of 3
           </span>
@@ -493,15 +515,18 @@ export default function AddNewAssetPage() {
           ) : (
             <button
               type="button"
+              disabled={submitting}
               onClick={submit}
-              className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 shadow-md transition-all cursor-pointer"
             >
               <CheckCircle2 size={16} />
-              <span>Register Asset Entry</span>
+              <span>{submitting ? "Registering..." : "Register Asset Entry"}</span>
             </button>
           )}
         </div>
       </div>
     </div>
+    </div>,
+    document.body
   );
 }

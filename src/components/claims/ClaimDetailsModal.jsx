@@ -1,6 +1,9 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { X, FileText, CheckCircle2, DollarSign, Calendar, Building, User, Tag, Package } from "lucide-react";
+import {
+  X, FileText, CheckCircle2, DollarSign, Calendar, Building, User,
+  Tag, Package, FileCheck2, Info, Paperclip, CreditCard, Wallet, Percent
+} from "lucide-react";
 import StatusBadge from "../ui/StatusBadge";
 import { fmtN } from "../../constants/theme";
 
@@ -12,9 +15,12 @@ export default function ClaimDetailsModal({ claim, assets = [], onClose }) {
     (a) => a.claimId === claim.id || a.assignedTo === claim.claimant
   );
 
+  const CURRENCY_SYMBOLS = { NGN: "₦", GBP: "£", USD: "$", EUR: "€" };
+  const fmtCurrency = (val, symbol = "£") => `${symbol}${(parseFloat(val) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-fade-in">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-scale-in my-auto max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-scale-in my-auto max-h-[92vh] flex flex-col">
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-[#007A87] via-[#054D66] to-[#031B38] px-6 py-5 text-white flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -34,7 +40,7 @@ export default function ClaimDetailsModal({ claim, assets = [], onClose }) {
           <button
             onClick={onClose}
             className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-2xl transition-colors cursor-pointer"
-            title="Close"
+            title="Close Details"
           >
             <X size={20} />
           </button>
@@ -74,54 +80,151 @@ export default function ClaimDetailsModal({ claim, assets = [], onClose }) {
               </div>
             </div>
 
-            <div className="p-3.5 bg-teal-50/60 rounded-2xl border border-teal-100 flex items-start gap-3 col-span-2 sm:col-span-3">
-              <div className="p-2 rounded-xl bg-teal-600 text-white mt-0.5">
-                <DollarSign size={18} />
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-700 mt-0.5">
+                <Tag size={16} />
               </div>
-              <div className="flex-1 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-teal-800 font-bold uppercase tracking-wider">Total Amount Claimed</p>
-                  <p className="font-black text-xl text-teal-900 mt-0.5">{fmtN(claim.amount)}</p>
+              <div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Claim Type</p>
+                <p className="font-bold text-xs text-slate-900 mt-0.5">{claim.claimType || "Staff Expense"}</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 mt-0.5">
+                <Building size={16} />
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Company</p>
+                <p className="font-bold text-xs text-slate-900 mt-0.5">{claim.companyName || "Halal Food Authority"}</p>
+              </div>
+            </div>
+
+            {(claim.contactPerson || claim.contactEmail) && (
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-cyan-50 text-cyan-700 mt-0.5">
+                  <Info size={16} />
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] text-slate-400 font-semibold">Payment Status</p>
-                  <span className={`inline-block mt-1 text-xs font-extrabold uppercase px-2.5 py-1 rounded-full ${
-                    claim.status === "paid"
-                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                      : "bg-amber-100 text-amber-800 border border-amber-300"
-                  }`}>
-                    {claim.status === "paid" ? "Paid" : "Unpaid"}
-                  </span>
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contact Info</p>
+                  <p className="font-bold text-xs text-slate-900 mt-0.5">{claim.contactPerson || "N/A"}</p>
+                  {claim.contactEmail && <p className="text-[10px] text-slate-500 font-medium">{claim.contactEmail}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Amount Banner Card */}
+            <div className="p-4 bg-teal-50/70 rounded-2xl border border-teal-100 flex items-center justify-between col-span-2 sm:col-span-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-teal-600 text-white shadow-sm">
+                  <DollarSign size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] text-teal-800 font-bold uppercase tracking-wider">Total Claim Amount</p>
+                  <p className="font-black text-2xl text-teal-950 mt-0.5">{fmtN(claim.amount)}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Processing Status</p>
+                <div className="mt-1">
+                  <StatusBadge status={claim.status} />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Notes or Officer Feedback */}
+          {/* Claim Reasons Section */}
+          {claim.reasons && claim.reasons.length > 0 && (
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <FileCheck2 size={14} className="text-teal-600" />
+                <span>Claim Reasons ({claim.reasons.length})</span>
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {claim.reasons.map((r, idx) => (
+                  <div key={idx} className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2 text-xs font-semibold text-slate-800">
+                    <span>{r.option || r}</span>
+                    {r.chg && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        Chargeable
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Officer Notes or Feedback */}
           {claim.note && (
-            <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200/60">
+            <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200/80">
               <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-1">Officer Notes / Feedback</p>
               <p className="text-xs font-medium text-amber-800 leading-relaxed">{claim.note}</p>
             </div>
           )}
 
-          {/* Claim Items Breakdown (if available) */}
+          {/* Itemized Expenses Table */}
           {claim.items && claim.items.length > 0 && (
             <div className="space-y-2.5">
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                 <Tag size={14} className="text-teal-600" />
                 <span>Itemized Expenses ({claim.items.length})</span>
               </h4>
-              <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100">
-                {claim.items.map((item, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-50/50 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-slate-900">{item.category || item.description || `Item ${idx + 1}`}</p>
-                      {item.type && <p className="text-[10px] text-slate-500 font-medium">{item.type}</p>}
+              <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs whitespace-nowrap">
+                    <thead>
+                      <tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
+                        <th className="text-left px-4 py-3">Category / Description</th>
+                        <th className="text-left px-3 py-3">Type</th>
+                        <th className="text-right px-3 py-3">Credit Card</th>
+                        <th className="text-right px-3 py-3">Cash</th>
+                        <th className="text-right px-3 py-3">VAT</th>
+                        <th className="text-right px-4 py-3">Total Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {claim.items.map((item, idx) => {
+                        const symbol = CURRENCY_SYMBOLS[item.currency] || "£";
+                        return (
+                          <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-3 font-bold text-slate-900">
+                              {item.category || item.description || `Item ${idx + 1}`}
+                              {item.note && <p className="text-[10px] text-slate-500 font-medium mt-0.5">{item.note}</p>}
+                            </td>
+                            <td className="px-3 py-3 text-slate-600 font-medium">{item.type || "In Budget"}</td>
+                            <td className="px-3 py-3 text-right text-slate-600">{item.card ? fmtCurrency(item.card, symbol) : "-"}</td>
+                            <td className="px-3 py-3 text-right text-slate-600">{item.cash ? fmtCurrency(item.cash, symbol) : "-"}</td>
+                            <td className="px-3 py-3 text-right text-slate-500">{item.vat ? fmtCurrency(item.vat, symbol) : "-"}</td>
+                            <td className="px-4 py-3 text-right font-extrabold text-teal-800">
+                              {fmtCurrency(item.total || item.amount || 0, symbol)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Attachments Section */}
+          {claim.attachments && claim.attachments.length > 0 && (
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <Paperclip size={14} className="text-teal-600" />
+                <span>Supporting Attachments ({claim.attachments.length})</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {claim.attachments.map((file, idx) => (
+                  <div key={idx} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                      {typeof file === "string" ? file.split('.').pop() : "DOC"}
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-slate-900">{fmtN(item.total || item.amount || 0)}</p>
-                      {item.vat > 0 && <p className="text-[10px] text-slate-400">VAT: {fmtN(item.vat)}</p>}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-slate-900 truncate">{typeof file === "string" ? file : file.name || `Attachment ${idx + 1}`}</p>
+                      <p className="text-[10px] text-slate-400 font-medium">Verified File</p>
                     </div>
                   </div>
                 ))}

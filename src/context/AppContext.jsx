@@ -25,6 +25,15 @@ export function AppProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [isClaimSheetOpen, setIsClaimSheetOpen] = useState(false);
+  const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
+
+  const openClaimSheet = () => setIsClaimSheetOpen(true);
+  const closeClaimSheet = () => setIsClaimSheetOpen(false);
+
+  const openAddAsset = () => setIsAddAssetOpen(true);
+  const closeAddAsset = () => setIsAddAssetOpen(false);
+
   // Persist auth
   useEffect(() => {
     if (loggedInUser) {
@@ -72,7 +81,15 @@ export function AppProvider({ children }) {
             id: c.claimRefNo || c.claimNumber || c.id || c._id,
             claimant: c.claimantName || (c.claimantId && (c.claimantId.fullName || c.claimantId.name || c.claimantId.username)) || "User",
             dept: c.department || "Operations",
-            title: c.claimType || "General Claim",
+            title: c.claimType ? `${c.claimType} Claim` : c.title || "General Expense Claim",
+            claimType: c.claimType || "Staff Expense",
+            companyName: c.companyName || "Halal Food Authority",
+            contactPerson: c.contactPerson || "",
+            contactEmail: c.contactEmail || "",
+            reasons: c.reasons || [],
+            items: c.items || [],
+            subtotals: c.subtotals || null,
+            attachments: c.attachments || c.files || [],
             amount: (c.subtotals && c.subtotals.grandTotal) || c.totalClaimAmount || c.amount || 0,
             date: c.filingDate
               ? new Date(c.filingDate).toISOString().slice(0, 10)
@@ -228,10 +245,18 @@ export function AppProvider({ children }) {
         const mappedClaim = {
           _id: serverClaim._id,
           id: serverClaim.claimRefNo || serverClaim.claimNumber || serverClaim.id || serverClaim._id,
-          claimant: serverClaim.claimantName || loggedInUser?.name || "User",
+          claimant: serverClaim.claimantName || claimPayload.claimantName || loggedInUser?.name || "User",
           dept: serverClaim.department || "Operations",
-          title: serverClaim.claimType || "General Claim",
-          amount: (serverClaim.subtotals && serverClaim.subtotals.grandTotal) || 0,
+          title: serverClaim.claimType ? `${serverClaim.claimType} Claim` : claimPayload.title || "General Expense Claim",
+          claimType: serverClaim.claimType || claimPayload.claimType || "Staff Expense",
+          companyName: serverClaim.companyName || claimPayload.companyName || "Halal Food Authority",
+          contactPerson: serverClaim.contactPerson || claimPayload.contactPerson || "",
+          contactEmail: serverClaim.contactEmail || claimPayload.contactEmail || "",
+          reasons: serverClaim.reasons || claimPayload.reasons || [],
+          items: serverClaim.items || claimPayload.items || [],
+          subtotals: serverClaim.subtotals || claimPayload.subtotals || null,
+          attachments: serverClaim.attachments || claimPayload.attachments || [],
+          amount: (serverClaim.subtotals && serverClaim.subtotals.grandTotal) || claimPayload.amount || 0,
           date: serverClaim.filingDate
             ? new Date(serverClaim.filingDate).toISOString().slice(0, 10)
             : new Date().toISOString().slice(0, 10),
@@ -239,11 +264,15 @@ export function AppProvider({ children }) {
           note: serverClaim.officerNote || "",
         };
         setClaims((prev) => [mappedClaim, ...prev]);
+        return { success: true };
       } else {
-        console.error("Failed to submit claim:", res.status);
+        const errData = await res.json().catch(() => ({}));
+        console.error("Failed to submit claim:", res.status, errData);
+        return { success: false, message: errData.message || `Server error: ${res.status}` };
       }
     } catch (e) {
       console.error("Submit claim error:", e);
+      return { success: false, message: "Network error. Please check your connection and try again." };
     }
   };
 
@@ -284,11 +313,15 @@ export function AppProvider({ children }) {
           sellerVendor: serverAsset.sellerVendor || "",
         };
         setAssets((prev) => [mappedAsset, ...prev]);
+        return { success: true };
       } else {
-        console.error("Failed to register asset:", res.status);
+        const errData = await res.json().catch(() => ({}));
+        console.error("Failed to register asset:", res.status, errData);
+        return { success: false, message: errData.message || `Server error: ${res.status}` };
       }
     } catch (e) {
       console.error("Add asset error:", e);
+      return { success: false, message: "Network error. Please check your connection and try again." };
     }
   };
 
@@ -406,6 +439,12 @@ export function AppProvider({ children }) {
     handleUpdateUser,
     handleDeleteUser,
     handleMarkAllRead,
+    isClaimSheetOpen,
+    openClaimSheet,
+    closeClaimSheet,
+    isAddAssetOpen,
+    openAddAsset,
+    closeAddAsset,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

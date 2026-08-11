@@ -15,8 +15,8 @@ const WIZARD_STEPS = [
   { id: 4, title: "Attachments & Review", subtitle: "Documents & final submission" },
 ];
 
-export default function ManageClaimSheetPage() {
-  const { currentUser, handleCreateClaim } = useApp();
+export default function ManageClaimSheetPage({ onClose: propOnClose }) {
+  const { currentUser, handleSubmitClaim, closeClaimSheet } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -39,6 +39,8 @@ export default function ManageClaimSheetPage() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const fileInputRef = useRef(null);
 
   const [activeNoteModalItem, setActiveNoteModalItem] = useState(null);
@@ -109,14 +111,22 @@ export default function ManageClaimSheetPage() {
 
   const handleBack = () => { if (step > 1) setStep(step - 1); };
 
-  const handleClose = () => { navigate("/claims"); };
+  const handleClose = () => {
+    if (propOnClose) propOnClose();
+    if (closeClaimSheet) closeClaimSheet();
+    if (window.location.pathname === "/claims/new") navigate("/claims");
+  };
 
-  const submitForm = (e) => {
+  const submitForm = async (e) => {
     if (e) e.preventDefault();
+    setSubmitting(true);
+    setSubmitError("");
+
     const primaryItem = items.find((i) => i.category) || items[0];
     const claimTitle = primaryItem.category ? `${primaryItem.category} Claim` : "General Expense Claim";
 
-    handleCreateClaim({
+    const result = await handleSubmitClaim({
+      claimantName: claimantName || currentUser || "User",
       claimType: claimType || "Staff Expense",
       filingDate: claimDate || new Date().toISOString().slice(0, 10),
       companyName: companyName || "Halal Food Authority",
@@ -145,15 +155,22 @@ export default function ManageClaimSheetPage() {
       department: "Operations",
     });
 
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      navigate("/claims");
-    }, 1500);
+    setSubmitting(false);
+
+    if (result && result.success) {
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        handleClose();
+      }, 1500);
+    } else {
+      setSubmitError(result?.message || "Submission failed. Please try again.");
+    }
   };
 
-  return (
-    <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-5xl shadow-xl overflow-hidden flex flex-col mx-auto animate-scale-in">
+  return createPortal(
+    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in">
+      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh] animate-scale-in">
       {/* Top Header */}
       <div className="bg-gradient-to-r from-[#007A87] via-[#054D66] to-[#031B38] px-6 py-5 sm:px-8 text-white flex items-center justify-between relative overflow-hidden flex-shrink-0">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
@@ -722,6 +739,11 @@ export default function ManageClaimSheetPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {submitError && (
+            <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-3 py-1 rounded-lg border border-rose-200">
+              {submitError}
+            </span>
+          )}
           <span className="text-xs font-semibold text-slate-400 hidden sm:inline">
             Step {step} of 4
           </span>
@@ -738,15 +760,18 @@ export default function ManageClaimSheetPage() {
           ) : (
             <button
               type="button"
+              disabled={submitting}
               onClick={submitForm}
-              className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 shadow-md transition-all cursor-pointer"
             >
               <CheckCircle2 size={16} />
-              <span>Submit Claim Application</span>
+              <span>{submitting ? "Submitting..." : "Submit Claim Application"}</span>
             </button>
           )}
         </div>
       </div>
     </div>
+    </div>,
+    document.body
   );
 }
