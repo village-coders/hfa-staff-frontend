@@ -240,64 +240,80 @@ function EmptyState({ icon: Icon, title, subtitle }) {
 /* NOTIFICATION PANEL                                                */
 /* ---------------------------------------------------------------- */
 function NotificationPanel({ notifications, onMarkAllRead, onClose }) {
+  const [showAll, setShowAll] = useState(false);
   const unread = notifications.filter((n) => !n.read).length;
-  return (
-    <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-scale-in">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-        <div className="flex items-center gap-2">
-          <Bell size={15} style={{ color: T.tealMain }} />
-          <span className="text-sm font-bold text-slate-900">Notifications</span>
-          {unread > 0 && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-500 text-white">{unread}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {unread > 0 && (
-            <button
-              onClick={onMarkAllRead}
-              className="text-[10px] font-semibold text-teal-700 hover:text-teal-900"
-            >
-              Mark all read
-            </button>
-          )}
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
-            <X size={14} />
-          </button>
-        </div>
-      </div>
+  const displayedNotifs = showAll ? notifications : notifications.slice(0, 5);
 
-      {/* List */}
-      <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-        {notifications.length === 0 ? (
-          <div className="py-10 text-center text-xs text-slate-400 font-medium">No notifications</div>
-        ) : (
-          notifications.map((n) => {
-            const c = NOTIF_COLORS[n.type] || { dot: "#94A3B8", bg: "#F1F5F9" };
-            return (
-              <div key={n.id} className={`flex gap-3 px-4 py-3 ${n.read ? "bg-white" : "bg-teal-50/40"}`}>
-                <div
-                  className="mt-0.5 w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: n.read ? "#CBD5E1" : c.dot }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-semibold text-slate-900 ${!n.read ? "font-bold" : ""}`}>{n.title}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{n.body}</p>
-                  <p className="text-[10px] text-slate-400 mt-1">{n.time}</p>
+  return (
+    <>
+      {/* Mobile Backdrop for Centered Modal */}
+      <div 
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs sm:hidden z-40" 
+        onClick={onClose} 
+      />
+
+      <div className="fixed sm:absolute inset-x-4 top-16 sm:inset-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-scale-in max-w-md mx-auto">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="flex items-center gap-2">
+            <Bell size={15} style={{ color: T.tealMain }} />
+            <span className="text-sm font-bold text-slate-900">Notifications</span>
+            {unread > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-500 text-white">{unread}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {unread > 0 && (
+              <button
+                onClick={onMarkAllRead}
+                className="text-[10px] font-semibold text-teal-700 hover:text-teal-900"
+              >
+                Mark all read
+              </button>
+            )}
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1">
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+          {displayedNotifs.length === 0 ? (
+            <div className="py-10 text-center text-xs text-slate-400 font-medium">No notifications</div>
+          ) : (
+            displayedNotifs.map((n) => {
+              const c = NOTIF_COLORS[n.type] || { dot: "#94A3B8", bg: "#F1F5F9" };
+              return (
+                <div key={n.id} className={`flex gap-3 px-4 py-3 ${n.read ? "bg-white" : "bg-teal-50/40"}`}>
+                  <div
+                    className="mt-0.5 w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: n.read ? "#CBD5E1" : c.dot }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-semibold text-slate-900 ${!n.read ? "font-bold" : ""}`}>{n.title}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{n.body}</p>
+                    <p className="text-[10px] text-slate-400 mt-1">{n.time}</p>
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer */}
+        {notifications.length > 0 && (
+          <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50 text-center">
+            <button 
+              onClick={() => setShowAll(!showAll)}
+              className="text-xs font-semibold text-teal-700 hover:text-teal-900 cursor-pointer"
+            >
+              {showAll ? "Show less" : `View all notifications (${notifications.length})`}
+            </button>
+          </div>
         )}
       </div>
-
-      {/* Footer */}
-      <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50 text-center">
-        <button className="text-xs font-semibold text-teal-700 hover:text-teal-900">
-          View all notifications
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -348,10 +364,11 @@ function LoginPage({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E2E8F0]">
-      <div className="relative w-full max-w-5xl rounded-3xl overflow-hidden shadow-xl flex flex-col md:flex-row animate-scale-in border border-slate-200 bg-white">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E2E8F0]">
+      <div className="relative w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row animate-scale-in border border-slate-200 bg-white my-auto">
 
-        <div className="relative md:w-1/2 p-8 lg:p-12 flex flex-col justify-between overflow-hidden bg-gradient-to-br from-[#007A87] via-[#054D66] to-[#031B38] text-white">
+        {/* Left / Top Banner */}
+        <div className="relative w-full md:w-1/2 p-6 sm:p-8 lg:p-12 flex flex-col justify-between overflow-hidden bg-gradient-to-br from-[#007A87] via-[#054D66] to-[#031B38] text-white text-center md:text-left">
           <div className="absolute top-0 left-0 w-48 h-48 opacity-20 pointer-events-none">
             <svg width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
               <pattern id="dotPattern" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
@@ -361,17 +378,17 @@ function LoginPage({ onLogin }) {
             </svg>
           </div>
 
-          <div className="relative z-10">
-            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-2">IFRS</h1>
-            <p className="text-base font-semibold text-teal-100">Internal Financial Record System</p>
-            <div className="w-12 h-0.5 bg-teal-300/50 my-4 rounded-full" />
-            <p className="text-xs text-teal-50/90 leading-relaxed max-w-sm font-normal">
+          <div className="relative z-10 flex flex-col items-center md:items-start">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-2">IFRS</h1>
+            <p className="text-sm sm:text-base font-semibold text-teal-100">Internal Financial Record System</p>
+            <div className="w-12 h-0.5 bg-teal-300/50 my-3 sm:my-4 rounded-full" />
+            <p className="text-xs text-teal-50/90 leading-relaxed max-w-xs sm:max-w-sm font-normal">
               Secure access to manage and monitor Internal Financial Record System operations and analytics.
             </p>
           </div>
 
-          <div className="relative z-10 mt-12 pt-8 flex justify-center items-end">
-            <svg className="w-full h-44 text-white/30" viewBox="0 0 400 160" fill="currentColor">
+          <div className="relative z-10 mt-6 sm:mt-8 md:mt-12 pt-4 md:pt-8 flex justify-center items-end hidden sm:flex">
+            <svg className="w-full h-32 md:h-44 text-white/30" viewBox="0 0 400 160" fill="currentColor">
               <line x1="0" y1="150" x2="400" y2="150" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
               <line x1="20" y1="154" x2="380" y2="154" stroke="currentColor" strokeWidth="0.5" />
               <g transform="translate(140, 10)">
@@ -391,16 +408,17 @@ function LoginPage({ onLogin }) {
 
         </div>
 
-        <div className="md:w-1/2 p-8 lg:p-12 bg-[#02132B] text-white flex flex-col justify-between items-center text-center">
+        {/* Right / Bottom Form */}
+        <div className="w-full md:w-1/2 p-6 sm:p-8 lg:p-12 bg-[#02132B] text-white flex flex-col justify-between items-center text-center">
           <div className="w-full max-w-sm flex flex-col items-center my-auto">
 
-            <div className="mb-6 flex items-center justify-center">
+            <div className="mb-4 sm:mb-6 flex items-center justify-center">
               <div className="p-1 bg-[#F8FAFC] rounded-full shadow-xl shadow-black/30 border border-white/20 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-                <img src={logo} alt="Logo" className="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-full" />
+                <img src={logo} alt="Logo" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 object-contain rounded-full" />
               </div>
             </div>
 
-            <p className="text-white/90 text-xs font-medium mb-6">Enter Details to Login</p>
+            <p className="text-white/90 text-xs font-medium mb-4 sm:mb-6">Enter Details to Login</p>
 
             <form onSubmit={handleSubmit} className="w-full space-y-4">
               <div className="relative flex items-center bg-white rounded-xl overflow-hidden shadow-inner">
@@ -434,14 +452,14 @@ function LoginPage({ onLogin }) {
               {error && (
                 <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
                   <XCircle size={14} className="text-rose-500 flex-shrink-0" />
-                  <p className="text-xs text-rose-700 font-medium">{error}</p>
+                  <p className="text-xs text-rose-700 font-medium text-left">{error}</p>
                 </div>
               )}
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-3 px-6 rounded-xl font-semibold text-xs text-white bg-gradient-to-r from-[#0D9488] to-[#0284C7] hover:from-[#0F766E] hover:to-[#0369A1] shadow-md transform active:scale-98 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full mt-2 py-3 px-6 rounded-xl font-semibold text-xs text-white bg-gradient-to-r from-[#0D9488] to-[#0284C7] hover:from-[#0F766E] hover:to-[#0369A1] shadow-md transform active:scale-98 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isLoading ? (
                   <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /><span>Authenticating...</span></>
@@ -450,7 +468,7 @@ function LoginPage({ onLogin }) {
             </form>
           </div>
 
-          <div className="flex items-center gap-2 mt-8">
+          <div className="flex items-center gap-2 mt-6 sm:mt-8">
             <span className="w-2 h-2 rounded-full bg-teal-400/50" />
             <span className="w-2.5 h-2.5 rounded-full bg-[#0D9488] shadow-sm" />
             <span className="w-2 h-2 rounded-full bg-teal-400/50" />
@@ -1008,17 +1026,17 @@ function DashboardView({ role, claims, assets, users, currentUser, onNavigate, o
             <ArrowRight size={13} />
           </button>
         </div>
-        <div>
+        <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <th className="text-left px-5 py-3.5">Claim ID</th>
-                <th className="text-left px-5 py-3.5">Claimant</th>
-                <th className="text-left px-5 py-3.5">Department</th>
-                <th className="text-left px-5 py-3.5">Amount</th>
-                <th className="text-left px-5 py-3.5">Date</th>
-                <th className="text-left px-5 py-3.5">Status</th>
-                <th className="text-center px-5 py-3.5 w-20">Action</th>
+                <th className="text-left px-5 py-3.5 whitespace-nowrap">Claim ID</th>
+                <th className="text-left px-5 py-3.5 whitespace-nowrap">Claimant</th>
+                <th className="text-left px-5 py-3.5 whitespace-nowrap">Department</th>
+                <th className="text-left px-5 py-3.5 whitespace-nowrap">Amount</th>
+                <th className="text-left px-5 py-3.5 whitespace-nowrap">Date</th>
+                <th className="text-left px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="text-center px-5 py-3.5 w-20 whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -1935,13 +1953,13 @@ function ManageClaimSheet({ onSubmitClaim, currentUser, onClose }) {
                   <thead>
                     <tr className="bg-[#007A87] text-white font-semibold">
                       <th className="text-left px-4 py-3.5 min-w-[120px] whitespace-nowrap">Type</th>
-                      <th className="text-left px-4 py-3.5 min-w-[150px]">Description</th>
-                      <th className="text-left px-3 py-3.5 w-24">Currency</th>
-                      <th className="text-right px-3 py-3.5 w-28">Credit Card</th>
-                      <th className="text-right px-3 py-3.5 w-28">Cash</th>
-                      <th className="text-right px-3 py-3.5 w-24">VAT</th>
-                      <th className="text-right px-4 py-3.5 w-28">Total</th>
-                      <th className="text-center px-3 py-3.5 w-32">Note</th>
+                      <th className="text-left px-4 py-3.5 min-w-[150px] whitespace-nowrap">Description</th>
+                      <th className="text-left px-3 py-3.5 w-24 whitespace-nowrap">Currency</th>
+                      <th className="text-right px-3 py-3.5 w-28 whitespace-nowrap">Credit Card</th>
+                      <th className="text-right px-3 py-3.5 w-28 whitespace-nowrap">Cash</th>
+                      <th className="text-right px-3 py-3.5 w-24 whitespace-nowrap">VAT</th>
+                      <th className="text-right px-4 py-3.5 w-28 whitespace-nowrap">Total</th>
+                      <th className="text-center px-3 py-3.5 w-32 whitespace-nowrap">Note</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white">
@@ -3465,7 +3483,7 @@ export default function IFRSPreview() {
   if (!loggedInUser) return <LoginPage onLogin={(user) => { setLoggedInUser(user); setActiveView("dashboard"); }} />;
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-800">
+    <div className="flex h-screen overflow-hidden bg-[#F8FAFC] font-sans antialiased text-slate-800">
       <Sidebar
         role={role}
         activeView={view}
@@ -3479,7 +3497,7 @@ export default function IFRSPreview() {
         setCollapsed={setSidebarCollapsed}
       />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col min-h-0">
         <Topbar
           role={role}
           viewTitle={VIEW_TITLES[view] || "Dashboard"}
@@ -3492,7 +3510,7 @@ export default function IFRSPreview() {
           setSidebarCollapsed={setSidebarCollapsed}
         />
 
-        <main className="p-4 sm:p-8 flex-1">
+        <main className="p-4 sm:p-8 flex-1 overflow-y-auto">
           {(view === "dashboard" || view === "manage-claim-sheet") && (
             <DashboardView
               role={role}
