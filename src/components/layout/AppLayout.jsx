@@ -3,11 +3,13 @@ import { Outlet, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { useApp } from "../../context/AppContext";
+import ClaimDetailsModal from "../claims/ClaimDetailsModal";
 
 export default function AppLayout() {
   const {
     loggedInUser, role, currentUser, claims, assets, users,
     notifications, handleLogout, handleMarkAllRead,
+    selectedClaimForDetails, closeClaimDetails,
   } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -44,6 +46,15 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Global Claim Details Modal — opens when notification or claim action requests details */}
+      {selectedClaimForDetails && (
+        <ClaimDetailsModal
+          claim={selectedClaimForDetails}
+          assets={assets}
+          onClose={closeClaimDetails}
+        />
+      )}
     </div>
   );
 }

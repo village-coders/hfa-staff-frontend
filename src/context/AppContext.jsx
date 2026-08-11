@@ -27,12 +27,16 @@ export function AppProvider({ children }) {
 
   const [isClaimSheetOpen, setIsClaimSheetOpen] = useState(false);
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
+  const [selectedClaimForDetails, setSelectedClaimForDetails] = useState(null);
 
   const openClaimSheet = () => setIsClaimSheetOpen(true);
   const closeClaimSheet = () => setIsClaimSheetOpen(false);
 
   const openAddAsset = () => setIsAddAssetOpen(true);
   const closeAddAsset = () => setIsAddAssetOpen(false);
+
+  const openClaimDetails = (claim) => setSelectedClaimForDetails(claim);
+  const closeClaimDetails = () => setSelectedClaimForDetails(null);
 
   // Persist auth
   useEffect(() => {
@@ -410,14 +414,36 @@ export function AppProvider({ children }) {
     }
   };
 
-  const handleMarkAllRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const handleNotificationClick = (n, navigate) => {
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === n.id ? { ...item, read: true } : item))
+    );
+
     try {
-      await fetch(`${API_BASE_URL}/notifications/read-all`, {
+      fetch(`${API_BASE_URL}/notifications/${n._id || n.id}/read`, {
         method: "PATCH",
         headers: apiHeaders(),
-      });
-    } catch { /* UI already updated */ }
+      }).catch(() => {});
+    } catch {}
+
+    let targetClaim = null;
+    if (n.claimId) {
+      targetClaim = claims.find(
+        (c) => c.id === n.claimId || c._id === n.claimId || c.claimRefNo === n.claimId
+      );
+    }
+
+    if (!targetClaim) {
+      const text = `${n.title || ""} ${n.body || ""}`;
+      targetClaim = claims.find((c) => c.id && text.includes(c.id));
+    }
+
+    if (targetClaim) {
+      setSelectedClaimForDetails(targetClaim);
+      if (navigate) navigate("/claims");
+    } else if (navigate) {
+      navigate("/claims");
+    }
   };
 
   const value = {
@@ -439,6 +465,10 @@ export function AppProvider({ children }) {
     handleUpdateUser,
     handleDeleteUser,
     handleMarkAllRead,
+    handleNotificationClick,
+    selectedClaimForDetails,
+    openClaimDetails,
+    closeClaimDetails,
     isClaimSheetOpen,
     openClaimSheet,
     closeClaimSheet,

@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { MoreVertical } from "lucide-react";
 import { T } from "../../constants/theme";
+import ConfirmModal from "../ui/ConfirmModal";
 
 export default function ClaimActions({ claim, view, role, onTransition, onOpenFeedback, onDelete, onViewDetails }) {
   const [open, setOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+  const [pendingConfirm, setPendingConfirm] = useState(null);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -39,11 +41,16 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     setOpen((v) => !v);
   };
 
+  const requestConfirmation = (config) => {
+    setOpen(false);
+    setPendingConfirm(config);
+  };
+
   const btn = (label, onClick, style) => (
     <button
       key={label}
-      onClick={() => { onClick(); setOpen(false); }}
-      className="w-full text-left text-xs font-medium px-3.5 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 flex items-center gap-2 transition-colors"
+      onClick={onClick}
+      className="w-full text-left text-xs font-medium px-3.5 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 flex items-center gap-2 transition-colors cursor-pointer"
       style={{ color: style?.color || T.gray700 }}
     >
       {label}
@@ -52,37 +59,164 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
 
   const buttons = [];
   const currentStatus = claim.status;
+  const refNo = claim.id || claim.claimRefNo || "Claim";
 
   if (currentStatus === "new" && (role === "financial_officer" || role === "admin")) {
-    buttons.push(btn("Verify", () => onTransition(claim.id, "verified"), { color: T.tealLight }));
-    buttons.push(btn("Send Feedback", () => onOpenFeedback(claim), { color: T.gray700 }));
-    buttons.push(btn("Reject", () => onTransition(claim.id, "rejected"), { color: "#B91C1C" }));
+    buttons.push(
+      btn("Verify", () =>
+        requestConfirmation({
+          title: "Verify Claim",
+          message: `Are you sure you want to verify claim ${refNo}? This will forward it to the CEO for review.`,
+          confirmLabel: "Verify Claim",
+          confirmVariant: "primary",
+          onConfirm: () => onTransition(claim.id, "verified"),
+        }),
+        { color: T.tealLight }
+      )
+    );
+    buttons.push(
+      btn("Send Feedback", () => {
+        setOpen(false);
+        onOpenFeedback(claim);
+      }, { color: T.gray700 })
+    );
+    buttons.push(
+      btn("Reject", () =>
+        requestConfirmation({
+          title: "Reject Claim",
+          message: `Are you sure you want to reject claim ${refNo}? The claimant will be notified.`,
+          confirmLabel: "Reject Claim",
+          confirmVariant: "danger",
+          onConfirm: () => onTransition(claim.id, "rejected"),
+        }),
+        { color: "#B91C1C" }
+      )
+    );
   }
+
   if (currentStatus === "verified" && (role === "ceo" || role === "admin")) {
-    buttons.push(btn("Send to Accountant", () => onTransition(claim.id, "approved_for_payment"), { color: T.tealLight }));
-    buttons.push(btn("Send to Board", () => onTransition(claim.id, "further_approval"), { color: T.gray700 }));
-    buttons.push(btn("Reverse to Fin. Officer", () => onTransition(claim.id, "pending"), { color: "#B45309" }));
+    buttons.push(
+      btn("Send to Accountant", () =>
+        requestConfirmation({
+          title: "Approve for Payment",
+          message: `Are you sure you want to approve claim ${refNo} and forward it to the Accountant for payment disbursement?`,
+          confirmLabel: "Send to Accountant",
+          confirmVariant: "primary",
+          onConfirm: () => onTransition(claim.id, "approved_for_payment"),
+        }),
+        { color: T.tealLight }
+      )
+    );
+    buttons.push(
+      btn("Send to Board", () =>
+        requestConfirmation({
+          title: "Escalate to Board",
+          message: `Are you sure you want to escalate claim ${refNo} to the Board of Directors for further approval?`,
+          confirmLabel: "Send to Board",
+          confirmVariant: "warning",
+          onConfirm: () => onTransition(claim.id, "further_approval"),
+        }),
+        { color: T.gray700 }
+      )
+    );
+    buttons.push(
+      btn("Reverse to Fin. Officer", () =>
+        requestConfirmation({
+          title: "Return Claim to Financial Officer",
+          message: `Are you sure you want to return claim ${refNo} to the Financial Officer for re-evaluation?`,
+          confirmLabel: "Return Claim",
+          confirmVariant: "warning",
+          onConfirm: () => onTransition(claim.id, "pending"),
+        }),
+        { color: "#B45309" }
+      )
+    );
   }
+
   if (currentStatus === "further_approval" && (role === "chairman" || role === "admin")) {
-    buttons.push(btn("Approve — Return to CEO", () => onTransition(claim.id, "verified"), { color: T.tealLight }));
-    buttons.push(btn("Reject", () => onTransition(claim.id, "rejected"), { color: "#B91C1C" }));
+    buttons.push(
+      btn("Approve — Return to CEO", () =>
+        requestConfirmation({
+          title: "Board Approval",
+          message: `Are you sure you want to approve claim ${refNo} and return it to the CEO for final action?`,
+          confirmLabel: "Approve Claim",
+          confirmVariant: "primary",
+          onConfirm: () => onTransition(claim.id, "verified"),
+        }),
+        { color: T.tealLight }
+      )
+    );
+    buttons.push(
+      btn("Reject", () =>
+        requestConfirmation({
+          title: "Reject Claim",
+          message: `Are you sure you want to reject claim ${refNo}?`,
+          confirmLabel: "Reject Claim",
+          confirmVariant: "danger",
+          onConfirm: () => onTransition(claim.id, "rejected"),
+        }),
+        { color: "#B91C1C" }
+      )
+    );
   }
+
   if (currentStatus === "approved_for_payment" && (role === "accountant" || role === "admin")) {
-    buttons.push(btn("Mark as Paid", () => onTransition(claim.id, "paid"), { color: T.tealLight }));
+    buttons.push(
+      btn("Mark as Paid", () =>
+        requestConfirmation({
+          title: "Confirm Payment Disbursed",
+          message: `Are you sure you want to mark claim ${refNo} as Paid?`,
+          confirmLabel: "Mark as Paid",
+          confirmVariant: "primary",
+          onConfirm: () => onTransition(claim.id, "paid"),
+        }),
+        { color: T.tealLight }
+      )
+    );
   }
+
   if (currentStatus === "pending" && role === "user") {
-    buttons.push(btn("Resubmit Claim", () => onTransition(claim.id, "new"), { color: T.tealLight }));
+    buttons.push(
+      btn("Resubmit Claim", () =>
+        requestConfirmation({
+          title: "Resubmit Expense Claim",
+          message: `Are you sure you want to resubmit claim ${refNo} for review?`,
+          confirmLabel: "Resubmit",
+          confirmVariant: "primary",
+          onConfirm: () => onTransition(claim.id, "new"),
+        }),
+        { color: T.tealLight }
+      )
+    );
   }
+
   if (role === "admin" && view !== "manage-claim-sheet") {
-    buttons.push(btn("Delete", () => onDelete(claim.id), { color: "#B91C1C" }));
+    buttons.push(
+      btn("Delete", () =>
+        requestConfirmation({
+          title: "Delete Claim Record",
+          message: `Are you sure you want to permanently delete claim ${refNo}? This action cannot be undone.`,
+          confirmLabel: "Delete Permanently",
+          confirmVariant: "danger",
+          onConfirm: () => onDelete(claim.id),
+        }),
+        { color: "#B91C1C" }
+      )
+    );
   }
-  buttons.push(btn("View Details", () => onViewDetails && onViewDetails(claim), { color: T.gray700 }));
+
+  buttons.push(
+    btn("View Details", () => {
+      setOpen(false);
+      if (onViewDetails) onViewDetails(claim);
+    }, { color: T.gray700 })
+  );
 
   return (
     <div className="relative inline-block text-left" ref={ref}>
       <button
         onClick={toggleOpen}
-        className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm"
+        className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
       >
         <MoreVertical size={15} className="text-slate-600" />
       </button>
@@ -98,6 +232,19 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           </div>
         </>,
         document.body
+      )}
+
+      {/* Action Confirmation Modal */}
+      {pendingConfirm && (
+        <ConfirmModal
+          isOpen={true}
+          title={pendingConfirm.title}
+          message={pendingConfirm.message}
+          confirmLabel={pendingConfirm.confirmLabel}
+          confirmVariant={pendingConfirm.confirmVariant}
+          onConfirm={pendingConfirm.onConfirm}
+          onClose={() => setPendingConfirm(null)}
+        />
       )}
     </div>
   );

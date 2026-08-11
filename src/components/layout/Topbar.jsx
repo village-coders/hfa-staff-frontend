@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, Search, ChevronDown, LogOut, X, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 import { T } from "../../constants/theme";
 import { ROLES, NOTIF_COLORS as MENU_NOTIF_COLORS, VIEW_TITLES, PATH_TO_VIEW } from "../../constants/menu";
+import { useApp } from "../../context/AppContext";
 
 /* ---- Notification Panel ---- */
-function NotificationPanel({ notifications, onMarkAllRead, onClose }) {
+function NotificationPanel({ notifications, onMarkAllRead, onNotifClick, onClose }) {
   const [showAll, setShowAll] = useState(false);
   const unread = notifications.filter((n) => !n.read).length;
   const displayed = showAll ? notifications : notifications.slice(0, 5);
@@ -34,11 +35,11 @@ function NotificationPanel({ notifications, onMarkAllRead, onClose }) {
           </div>
           <div className="flex items-center gap-2">
             {unread > 0 && (
-              <button onClick={onMarkAllRead} className="text-[10px] font-semibold text-teal-700 hover:text-teal-900">
+              <button onClick={onMarkAllRead} className="text-[10px] font-semibold text-teal-700 hover:text-teal-900 cursor-pointer">
                 Mark all read
               </button>
             )}
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1">
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
               <X size={14} />
             </button>
           </div>
@@ -51,7 +52,14 @@ function NotificationPanel({ notifications, onMarkAllRead, onClose }) {
             displayed.map((n) => {
               const c = COLORS[n.type] || { dot: "#94A3B8", bg: "#F1F5F9" };
               return (
-                <div key={n.id} className={`flex gap-3 px-4 py-3 ${n.read ? "bg-white" : "bg-teal-50/40"}`}>
+                <div
+                  key={n.id}
+                  onClick={() => {
+                    if (onNotifClick) onNotifClick(n);
+                    onClose();
+                  }}
+                  className={`flex gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-teal-50/70 ${n.read ? "bg-white" : "bg-teal-50/40"}`}
+                >
                   <div
                     className="mt-0.5 w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: n.read ? "#CBD5E1" : c.dot }}
@@ -89,6 +97,8 @@ export default function Topbar({ role, setMobileOpen, notifications, onMarkAllRe
   const notifRef = useRef(null);
   const profileRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { handleNotificationClick } = useApp();
   const unread = notifications.filter((n) => !n.read).length;
 
   // Derive page title from URL path
@@ -162,6 +172,7 @@ export default function Topbar({ role, setMobileOpen, notifications, onMarkAllRe
             <NotificationPanel
               notifications={notifications}
               onMarkAllRead={onMarkAllRead}
+              onNotifClick={(n) => handleNotificationClick(n, navigate)}
               onClose={() => setNotifOpen(false)}
             />
           )}

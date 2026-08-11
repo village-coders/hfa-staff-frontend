@@ -12,7 +12,7 @@ import { fmtN } from "../constants/theme";
 
 export default function ClaimsPage() {
   const location = useLocation();
-  const { role, claims, assets, currentUser, handleTransition, handleDeleteClaim } = useApp();
+  const { role, claims, assets, currentUser, handleTransition, handleDeleteClaim, openClaimDetails } = useApp();
 
   const viewKey = PATH_TO_VIEW[location.pathname] || "all-claims-list";
   const item = CLAIM_ITEMS.find((i) => i.key === viewKey) || CLAIM_ITEMS[1];
@@ -122,7 +122,7 @@ export default function ClaimsPage() {
                           onTransition={handleTransition}
                           onOpenFeedback={setFeedbackClaim}
                           onDelete={handleDeleteClaim}
-                          onViewDetails={(claim) => setSelectedClaimForDetails(claim)}
+                          onViewDetails={(claim) => openClaimDetails(claim)}
                         />
                       </td>
                     </tr>
@@ -134,15 +134,6 @@ export default function ClaimsPage() {
           </>
         )}
       </div>
-
-      {/* View Details Modal */}
-      {selectedClaimForDetails && (
-        <ClaimDetailsModal
-          claim={selectedClaimForDetails}
-          assets={assets}
-          onClose={() => setSelectedClaimForDetails(null)}
-        />
-      )}
 
       {/* Feedback Modal */}
       {feedbackClaim && (
