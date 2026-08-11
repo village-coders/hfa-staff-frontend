@@ -1,0 +1,104 @@
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { MoreVertical } from "lucide-react";
+import { T } from "../../constants/theme";
+
+export default function ClaimActions({ claim, view, role, onTransition, onOpenFeedback, onDelete, onViewDetails }) {
+  const [open, setOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (
+        ref.current &&
+        !ref.current.contains(e.target) &&
+        !e.target.closest(".action-popup-menu")
+      ) {
+        setOpen(false);
+      }
+    };
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  useEffect(() => {
+    const handleScroll = () => setOpen(false);
+    if (open) window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, [open]);
+
+  const toggleOpen = () => {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen((v) => !v);
+  };
+
+  const btn = (label, onClick, style) => (
+    <button
+      key={label}
+      onClick={() => { onClick(); setOpen(false); }}
+      className="w-full text-left text-xs font-medium px-3.5 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 flex items-center gap-2 transition-colors"
+      style={{ color: style?.color || T.gray700 }}
+    >
+      {label}
+    </button>
+  );
+
+  const buttons = [];
+  const currentStatus = claim.status;
+
+  if (currentStatus === "new" && (role === "financial_officer" || role === "admin")) {
+    buttons.push(btn("Verify", () => onTransition(claim.id, "verified"), { color: T.tealLight }));
+    buttons.push(btn("Send Feedback", () => onOpenFeedback(claim), { color: T.gray700 }));
+    buttons.push(btn("Reject", () => onTransition(claim.id, "rejected"), { color: "#B91C1C" }));
+  }
+  if (currentStatus === "verified" && (role === "ceo" || role === "admin")) {
+    buttons.push(btn("Send to Accountant", () => onTransition(claim.id, "approved_for_payment"), { color: T.tealLight }));
+    buttons.push(btn("Send to Board", () => onTransition(claim.id, "further_approval"), { color: T.gray700 }));
+    buttons.push(btn("Reverse to Fin. Officer", () => onTransition(claim.id, "pending"), { color: "#B45309" }));
+  }
+  if (currentStatus === "further_approval" && (role === "chairman" || role === "admin")) {
+    buttons.push(btn("Approve — Return to CEO", () => onTransition(claim.id, "verified"), { color: T.tealLight }));
+    buttons.push(btn("Reject", () => onTransition(claim.id, "rejected"), { color: "#B91C1C" }));
+  }
+  if (currentStatus === "approved_for_payment" && (role === "accountant" || role === "admin")) {
+    buttons.push(btn("Mark as Paid", () => onTransition(claim.id, "paid"), { color: T.tealLight }));
+  }
+  if (currentStatus === "pending" && role === "user") {
+    buttons.push(btn("Resubmit Claim", () => onTransition(claim.id, "new"), { color: T.tealLight }));
+  }
+  if (role === "admin" && view !== "manage-claim-sheet") {
+    buttons.push(btn("Delete", () => onDelete(claim.id), { color: "#B91C1C" }));
+  }
+  buttons.push(btn("View Details", () => onViewDetails && onViewDetails(claim), { color: T.gray700 }));
+
+  return (
+    <div className="relative inline-block text-left" ref={ref}>
+      <button
+        onClick={toggleOpen}
+        className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm"
+      >
+        <MoreVertical size={15} className="text-slate-600" />
+      </button>
+
+      {open && createPortal(
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="action-popup-menu fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 py-1 overflow-hidden flex flex-col animate-scale-in"
+            style={{ top: dropdownPos.top, right: dropdownPos.right, width: "13rem" }}
+          >
+            {buttons}
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  );
+}
