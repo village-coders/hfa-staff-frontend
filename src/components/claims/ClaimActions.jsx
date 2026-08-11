@@ -3,8 +3,10 @@ import { createPortal } from "react-dom";
 import { MoreVertical } from "lucide-react";
 import { T } from "../../constants/theme";
 import ConfirmModal from "../ui/ConfirmModal";
+import { useApp } from "../../context/AppContext";
 
 export default function ClaimActions({ claim, view, role, onTransition, onOpenFeedback, onDelete, onViewDetails }) {
+  const { transitioningId } = useApp();
   const [open, setOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
   const [pendingConfirm, setPendingConfirm] = useState(null);
@@ -61,7 +63,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
   const currentStatus = claim.status;
   const refNo = claim.id || claim.claimRefNo || "Claim";
 
-  if (currentStatus === "new" && (role === "financial_officer" || role === "admin")) {
+  if ((currentStatus === "new" || currentStatus === "pending") && (role === "financial_officer" || role === "admin")) {
     buttons.push(
       btn("Verify", () =>
         requestConfirmation({
@@ -212,14 +214,25 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     }, { color: T.gray700 })
   );
 
+  const isThisClaimTransitioning = transitioningId && transitioningId.startsWith(`${claim.id}-`);
+
   return (
     <div className="relative inline-block text-left" ref={ref}>
-      <button
-        onClick={toggleOpen}
-        className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-      >
-        <MoreVertical size={15} className="text-slate-600" />
-      </button>
+      {isThisClaimTransitioning ? (
+        <div className="w-8 h-8 flex items-center justify-center">
+          <svg className="animate-spin h-5 w-5 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+      ) : (
+        <button
+          onClick={toggleOpen}
+          className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+        >
+          <MoreVertical size={15} className="text-slate-600" />
+        </button>
+      )}
 
       {open && createPortal(
         <>

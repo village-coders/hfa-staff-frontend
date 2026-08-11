@@ -4,12 +4,14 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { useApp } from "../../context/AppContext";
 import ClaimDetailsModal from "../claims/ClaimDetailsModal";
+import LoadingScreen from "../ui/LoadingScreen";
 
 export default function AppLayout() {
   const {
     loggedInUser, role, currentUser, claims, assets, users,
     notifications, handleLogout, handleMarkAllRead,
     selectedClaimForDetails, closeClaimDetails,
+    loading,
   } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -18,6 +20,8 @@ export default function AppLayout() {
   if (!loggedInUser) return <Navigate to="/login" replace />;
 
   return (
+    <>
+      {loading && <LoadingScreen />}
     <div className="flex h-screen overflow-hidden bg-[#F8FAFC] font-sans antialiased text-slate-800">
       <Sidebar
         role={role}
@@ -56,5 +60,6 @@ export default function AppLayout() {
         />
       )}
     </div>
+    </>
   );
 }

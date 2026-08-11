@@ -23,7 +23,8 @@ export function AppProvider({ children }) {
   const [assets, setAssets] = useState([]);
   const [users, setUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [transitioningId, setTransitioningId] = useState(null);
 
   const [isClaimSheetOpen, setIsClaimSheetOpen] = useState(false);
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
@@ -196,6 +197,8 @@ export function AppProvider({ children }) {
     const dbId = claimObj?._id || id;
     const currentStatus = claimObj?.status;
 
+    setTransitioningId(`${id}-${newStatus}`);
+
     // Optimistic update
     setClaims((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status: newStatus, note: note ?? c.note } : c))
@@ -219,6 +222,8 @@ export function AppProvider({ children }) {
       if (!res.ok) console.error("Transition failed:", res.status);
     } catch (e) {
       console.error("Transition error:", e);
+    } finally {
+      setTransitioningId(null);
     }
   };
 
@@ -465,6 +470,7 @@ export function AppProvider({ children }) {
     users,
     notifications,
     loading,
+    transitioningId,
     handleLogin,
     handleLogout,
     handleTransition,
