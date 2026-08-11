@@ -46,7 +46,7 @@ const STATUS = {
   rejected:              { label: "Rejected",                color: "#B91C1C", bg: "#FEE2E2" },
 };
 
-const fmtN = (n) => "₦" + n.toLocaleString();
+const fmtN = (n) => "£" + n.toLocaleString();
 
 /* ---------------------------------------------------------------- */
 /* REAL BACKEND DATA STRUCTURES                                      */
@@ -1618,7 +1618,7 @@ function ManageClaimSheet({ onSubmitClaim, currentUser, onClose }) {
   ]);
 
   const [items, setItems] = useState([
-    { id: 1, type: "In Budget", category: "Taxi Fare", note: "", currency: "NGN", payMode: "cash", card: 0, cash: 15000, bank: 0, vat: 0, total: 15000 }
+    { id: 1, type: "In Budget", category: "Taxi Fare", note: "", currency: "GBP", payMode: "cash", card: 0, cash: 15000, bank: 0, vat: 0, total: 15000 }
   ]);
 
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -1640,7 +1640,7 @@ function ManageClaimSheet({ onSubmitClaim, currentUser, onClose }) {
   const updateReason = (id, field, value) => { setReasons(reasons.map((r) => (r.id === id ? { ...r, [field]: value } : r))); };
 
   const addItemRow = () => {
-    setItems([...items, { id: Date.now(), type: "In Budget", category: "", note: "", currency: "NGN", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }]);
+    setItems([...items, { id: Date.now(), type: "In Budget", category: "", note: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }]);
   };
   const removeItemRow = (id) => { if (items.length > 1) setItems(items.filter((item) => item.id !== id)); };
 
@@ -1675,10 +1675,10 @@ function ManageClaimSheet({ onSubmitClaim, currentUser, onClose }) {
   const removeFile = (id) => { setUploadedFiles((prev) => prev.filter((f) => f.id !== id)); };
 
   const CURRENCY_SYMBOLS = { NGN: "₦", GBP: "£", USD: "$", EUR: "€" };
-  const fmtCurrency = (val, symbol = "₦") => `${symbol}${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtCurrency = (val, symbol = "£") => `${symbol}${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const primaryCurrency = items[0]?.currency || "NGN";
-  const activeSymbol = CURRENCY_SYMBOLS[primaryCurrency] || "₦";
+  const primaryCurrency = items[0]?.currency || "GBP";
+  const activeSymbol = CURRENCY_SYMBOLS[primaryCurrency] || "£";
 
   const subtotalCard = items.reduce((sum, item) => sum + (parseFloat(item.card) || 0), 0);
   const subtotalCash = items.reduce((sum, item) => sum + (parseFloat(item.cash) || 0), 0);
@@ -1709,7 +1709,7 @@ function ManageClaimSheet({ onSubmitClaim, currentUser, onClose }) {
       items: items.map(i => ({
         type: i.type || "None",
         category: i.category,
-        currency: i.currency || "NGN",
+        currency: i.currency || "GBP",
         payMode: i.payMode || "cash",
         card: parseFloat(i.card) || 0,
         cash: parseFloat(i.cash) || 0,
@@ -2094,7 +2094,7 @@ function ManageClaimSheet({ onSubmitClaim, currentUser, onClose }) {
                           />
                         </td>
                         <td className="p-3 text-right font-bold text-slate-900 text-xs">
-                          {fmtCurrency(item.total, CURRENCY_SYMBOLS[item.currency] || "₦")}
+                          {fmtCurrency(item.total, CURRENCY_SYMBOLS[item.currency] || "£")}
                         </td>
                         <td className="p-2.5 text-center">
                           <div className="flex items-center justify-center gap-1.5">
@@ -2753,7 +2753,7 @@ function AddNewAssetView({ onAddAsset, onClose }) {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-2">Amount (₦):</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-2">Amount (£):</label>
                   <input
                     type="number"
                     value={form.amount}
