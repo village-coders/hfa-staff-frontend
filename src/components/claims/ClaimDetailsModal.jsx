@@ -15,7 +15,7 @@ export default function ClaimDetailsModal({ claim, assets = [], onClose }) {
     (a) => a.claimId === claim.id || a.assignedTo === claim.claimant
   );
 
-  const CURRENCY_SYMBOLS = { NGN: "₦", GBP: "£", USD: "$", EUR: "€" };
+  const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€", NGN: "₦" };
   const fmtCurrency = (val, symbol = "£") => `${symbol}${(parseFloat(val) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return createPortal(

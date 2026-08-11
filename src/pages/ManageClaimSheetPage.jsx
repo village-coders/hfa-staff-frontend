@@ -91,7 +91,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
   const addFiles = (newFilesList) => { setUploadedFiles((prev) => [...prev, ...newFilesList.map((f) => ({ id: Date.now() + Math.random(), file: f, name: f.name, size: (f.size / 1024).toFixed(1) + " KB" }))]); };
   const removeFile = (id) => { setUploadedFiles((prev) => prev.filter((f) => f.id !== id)); };
 
-  const CURRENCY_SYMBOLS = { NGN: "₦", GBP: "£", USD: "$", EUR: "€" };
+  const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€", NGN: "₦" };
   const fmtCurrency = (val, symbol = "£") => `${symbol}${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const primaryCurrency = items[0]?.currency || "GBP";
@@ -490,10 +490,10 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                           onChange={(e) => updateItem(item.id, "currency", e.target.value)}
                           className="w-full border border-slate-200 rounded-xl px-2 py-2 text-xs font-semibold text-slate-800 outline-none bg-white focus:border-teal-500"
                         >
-                          <option value="NGN">NGN (₦)</option>
                           <option value="GBP">GBP (£)</option>
                           <option value="USD">USD ($)</option>
                           <option value="EUR">EUR (€)</option>
+                          <option value="NGN">NGN (₦)</option>
                         </select>
                       </td>
                       <td className="p-3">
