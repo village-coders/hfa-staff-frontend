@@ -55,7 +55,6 @@ export default function AppLayout() {
       {selectedClaimForDetails && (
         <ClaimDetailsModal
           claim={selectedClaimForDetails}
-          assets={assets}
           onClose={closeClaimDetails}
         />
       )}

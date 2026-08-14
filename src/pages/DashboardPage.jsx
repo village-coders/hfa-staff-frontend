@@ -12,7 +12,7 @@ import { ROLES, VIEW_TO_PATH } from "../constants/menu";
 import { STATUS, fmtN } from "../constants/theme";
 
 export default function DashboardPage() {
-  const { role, claims, assets, currentUser, handleTransition, handleDeleteClaim } = useApp();
+  const { role, claims, currentUser, handleTransition, handleDeleteClaim } = useApp();
   const navigate = useNavigate();
 
   const [selectedClaimForDetails, setSelectedClaimForDetails] = useState(null);
@@ -187,7 +187,6 @@ export default function DashboardPage() {
       {selectedClaimForDetails && (
         <ClaimDetailsModal
           claim={selectedClaimForDetails}
-          assets={assets}
           onClose={() => setSelectedClaimForDetails(null)}
         />
       )}

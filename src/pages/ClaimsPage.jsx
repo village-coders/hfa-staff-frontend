@@ -12,7 +12,7 @@ import { fmtN } from "../constants/theme";
 
 export default function ClaimsPage() {
   const location = useLocation();
-  const { role, claims, assets, currentUser, handleTransition, handleDeleteClaim, openClaimDetails } = useApp();
+  const { role, claims, currentUser, handleTransition, handleDeleteClaim, openClaimDetails } = useApp();
 
   const viewKey = PATH_TO_VIEW[location.pathname] || "all-claims-list";
   const item = CLAIM_ITEMS.find((i) => i.key === viewKey) || CLAIM_ITEMS[1];

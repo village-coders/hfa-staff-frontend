@@ -43,7 +43,7 @@ export default function LoginPage() {
         setError(errData.message || "Invalid username or password. Please try again.");
       }
     } catch {
-      setError("Unable to connect to the backend server. It may be waking up, please try again in a few seconds.");
+      setError("Unable to connect to the backend server, please try again in a few seconds.");
     }
     setIsLoading(false);
   };

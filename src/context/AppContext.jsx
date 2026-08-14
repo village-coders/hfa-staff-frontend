@@ -69,7 +69,10 @@ export function AppProvider({ children }) {
 
   // Fetch all data after login
   useEffect(() => {
-    if (!loggedInUser) return;
+    if (!loggedInUser) {
+      setLoading(false);
+      return;
+    }
     const token = loggedInUser?.token || "";
     const headers = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
@@ -103,6 +106,7 @@ export function AppProvider({ children }) {
               : c.date || new Date().toISOString().slice(0, 10),
             status: c.status ? c.status.toLowerCase() : "new",
             note: c.officerNote || c.feedbackNote || c.note || "",
+            history: c.history || [],
           }));
           setClaims(mapped);
         } else {
@@ -163,10 +167,10 @@ export function AppProvider({ children }) {
             _id: n._id,
             id: n._id || n.id,
             title: n.title || "",
-            body: n.body || "",
-            type: n.type || "system",
-            read: n.isRead ?? n.read ?? false,
-            time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
+            message: n.message || "",
+            date: n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
+            read: n.isRead || false,
+            claimId: n.claimId || null,
           }));
           setNotifications(mapped);
         } else {
@@ -185,6 +189,10 @@ export function AppProvider({ children }) {
   const handleLogin = (user) => setLoggedInUser(user);
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+    setRole("user");
+    setCurrentUser("Taoheed");
     setLoggedInUser(null);
     setClaims([]);
     setAssets([]);
@@ -199,9 +207,28 @@ export function AppProvider({ children }) {
 
     setTransitioningId(`${id}-${newStatus}`);
 
-    // Optimistic update
+    // Optimistic update with history record
     setClaims((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: newStatus, note: note ?? c.note } : c))
+      prev.map((c) => {
+        if (c.id === id || c._id === id) {
+          const newEntry = {
+            actorName: currentUser || "User",
+            actorRole: role,
+            fromStatus: c.status,
+            toStatus: newStatus.toLowerCase(),
+            note: note || "",
+            timestamp: new Date().toISOString(),
+          };
+          const updatedHistory = Array.isArray(c.history) ? [...c.history, newEntry] : [newEntry];
+          return {
+            ...c,
+            status: newStatus.toLowerCase(),
+            note: note ?? c.note,
+            history: updatedHistory,
+          };
+        }
+        return c;
+      })
     );
 
     try {
