@@ -3,12 +3,14 @@ import { createPortal } from "react-dom";
 import { Plus, FileEdit, Trash2, X } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { ROLES } from "../constants/menu";
+import ConfirmModal from "../components/ui/ConfirmModal";
 
 export default function UsersPage() {
   const { users, role, handleAddUser, handleUpdateUser, handleDeleteUser } = useApp();
 
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", username: "", role: "user", password: "" });
   const [editForm, setEditForm] = useState({ name: "", email: "", username: "", role: "user", password: "" });
 
@@ -124,7 +126,7 @@ export default function UsersPage() {
                             <FileEdit size={14} />
                           </button>
                           <button
-                            onClick={() => handleDeleteUser(u.username)}
+                            onClick={() => setUserToDelete(u)}
                             className="p-1.5 rounded-lg border border-rose-100 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                             title="Delete User"
                           >
@@ -140,6 +142,22 @@ export default function UsersPage() {
           </table>
         </div>
       </div>
+
+      {/* Delete User Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!userToDelete}
+        title="Delete User Account"
+        message={`Are you sure you want to permanently delete the user account for "${userToDelete?.name}" (@${userToDelete?.username})? This action cannot be undone.`}
+        confirmLabel="Delete User"
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (userToDelete) {
+            handleDeleteUser(userToDelete.username);
+            setUserToDelete(null);
+          }
+        }}
+        onClose={() => setUserToDelete(null)}
+      />
 
       {/* Edit User Modal */}
       {editingUser && createPortal(

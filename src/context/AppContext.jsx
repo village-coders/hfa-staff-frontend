@@ -488,6 +488,20 @@ export function AppProvider({ children }) {
     }
   };
 
+  const handleDeleteAsset = async (id) => {
+    const assetObj = assets.find((a) => a.id === id || a._id === id);
+    const dbId = assetObj?._id || id;
+    setAssets((prev) => prev.filter((a) => a.id !== id && a._id !== id));
+    try {
+      await fetch(`${API_BASE_URL}/assets/${dbId}`, {
+        method: "DELETE",
+        headers: apiHeaders(),
+      });
+    } catch (e) {
+      console.error("Delete asset error:", e);
+    }
+  };
+
   const value = {
     loggedInUser,
     role: loggedInUser?.role || "user",
@@ -504,6 +518,7 @@ export function AppProvider({ children }) {
     handleDeleteClaim,
     handleSubmitClaim,
     handleAddAsset,
+    handleDeleteAsset,
     handleAddUser,
     handleUpdateUser,
     handleDeleteUser,

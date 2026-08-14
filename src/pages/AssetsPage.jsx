@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
   Eye, Package, PackagePlus, PlusCircle, X, User, Calendar,
-  Building, DollarSign, Paperclip, Store, Tag, Clock
+  Building, DollarSign, Paperclip, Store, Tag, Clock, Trash2
 } from "lucide-react";
 import EmptyState from "../components/ui/EmptyState";
 import Pagination from "../components/ui/Pagination";
+import ConfirmModal from "../components/ui/ConfirmModal";
 import { useApp } from "../context/AppContext";
 import { PATH_TO_VIEW } from "../constants/menu";
 import { fmtN } from "../constants/theme";
@@ -14,12 +15,14 @@ import { fmtN } from "../constants/theme";
 export default function AssetsPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { assets, openAddAsset } = useApp();
+  const { assets, role, openAddAsset, handleDeleteAsset } = useApp();
 
   const viewKey = PATH_TO_VIEW[location.pathname] || "manage-asset";
   const [page, setPage] = useState(1);
   const [selectedAsset, setSelectedAsset] = useState(null);
+  const [assetToDelete, setAssetToDelete] = useState(null);
 
+  const isAdmin = role === "admin";
   const pageSize = 10;
   const paged = assets.slice((page - 1) * pageSize, page * pageSize);
 
@@ -81,13 +84,24 @@ export default function AssetsPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <button
-                      onClick={() => setSelectedAsset(a)}
-                      className="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-700 shadow-sm transition-colors cursor-pointer"
-                      title="View Asset Details"
-                    >
-                      <Eye size={14} />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setSelectedAsset(a)}
+                        className="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-700 shadow-sm transition-colors cursor-pointer"
+                        title="View Asset Details"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      {isAdmin && handleDeleteAsset && (
+                        <button
+                          onClick={() => setAssetToDelete(a)}
+                          className="p-1.5 rounded-md border border-rose-100 text-rose-600 hover:bg-rose-50 shadow-sm transition-colors cursor-pointer"
+                          title="Delete Asset"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -96,6 +110,22 @@ export default function AssetsPage() {
         </div>
         <Pagination page={page} setPage={setPage} totalItems={assets.length} pageSize={pageSize} />
       </div>
+
+      {/* Delete Asset Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!assetToDelete}
+        title="Delete Asset Record"
+        message={`Are you sure you want to permanently delete the asset record for "${assetToDelete?.name || assetToDelete?.assetName}" (${assetToDelete?.id})? This action cannot be undone.`}
+        confirmLabel="Delete Asset"
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (assetToDelete && handleDeleteAsset) {
+            handleDeleteAsset(assetToDelete.id);
+            setAssetToDelete(null);
+          }
+        }}
+        onClose={() => setAssetToDelete(null)}
+      />
 
       {/* Asset Detail Popup Modal */}
       {selectedAsset && createPortal(
