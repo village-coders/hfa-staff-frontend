@@ -188,11 +188,15 @@ export function AppProvider({ children }) {
 
   const handleLogin = (user) => setLoggedInUser(user);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        headers: apiHeaders(),
+      }).catch(() => {});
+    } catch {}
+    localStorage.removeItem("ifrs_user");
     localStorage.removeItem("token");
-    setToken(null);
-    setRole("user");
-    setCurrentUser("Taoheed");
     setLoggedInUser(null);
     setClaims([]);
     setAssets([]);
