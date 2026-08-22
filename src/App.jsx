@@ -11,6 +11,7 @@ import ClaimTrackingPage from "./pages/ClaimTrackingPage";
 import AssetsPage from "./pages/AssetsPage";
 import AddNewAssetPage from "./pages/AddNewAssetPage";
 import UsersPage from "./pages/UsersPage";
+import ReportsPage from "./pages/ReportsPage";
 
 export default function App() {
   return (
@@ -42,8 +43,9 @@ export default function App() {
             <Route path="/assets/new-list" element={<AssetsPage />} />
             <Route path="/assets/add" element={<AddNewAssetPage />} />
 
-            {/* Users Route */}
+            {/* Users & Reports Routes */}
             <Route path="/users" element={<UsersPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
           </Route>
 
           {/* Catch-all redirect */}

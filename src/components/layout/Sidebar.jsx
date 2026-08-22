@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Bell, BookOpen, Users as UsersIcon,
+  LayoutDashboard, Bell, BookOpen, Users as UsersIcon, BarChart3,
   ChevronDown, ChevronRight, ArrowRight, Shield, X
 } from "lucide-react";
 import { CLAIM_ITEMS, ASSET_ITEMS, MENU_ACCESS, VIEW_TO_PATH } from "../../constants/menu";
@@ -257,21 +257,40 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
                 )}
               </button>
             )}
+
+            {access.includes("reports") && (
+              <button
+                onClick={() => { navigate("/reports"); setMobileOpen(false); }}
+                title={collapsed ? "Reports & Analytics" : undefined}
+                className={`w-full flex items-center gap-3 rounded-xl text-xs font-semibold transition-all
+                  ${collapsed ? "justify-center p-3" : "px-4 py-2.5"}
+                  ${currentViewKey === "reports"
+                    ? "bg-[#14B8A6]/90 text-white shadow-sm"
+                    : "text-teal-50/80 hover:bg-white/10 hover:text-white"
+                  }`}
+              >
+                <BarChart3 size={collapsed ? 18 : 16} />
+                {!collapsed && "Reports & Analytics"}
+              </button>
+            )}
           </nav>
         </div>
 
-        {!collapsed && (
+        {!collapsed && role === "super_admin" && (
           <div className="p-4 m-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white">
             <div className="flex items-center gap-2 mb-1.5">
               <Shield size={15} className="text-teal-300" />
               <p className="text-xs font-semibold tracking-wide">Secure. Monitor. Optimize.</p>
             </div>
             <p className="text-[11px] text-teal-100/80 leading-relaxed mb-3 font-normal">
-              Manage and monitor Internal Financial Record System operations securely.
+              Audit live transactions and visual cashflow charts with custom time and user filters.
             </p>
             <button
-              onClick={() => navigate("/dashboard")}
-              className="w-full py-2 px-3 rounded-lg bg-teal-500/80 hover:bg-teal-500 text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+              onClick={() => {
+                navigate("/reports");
+                setMobileOpen(false);
+              }}
+              className="w-full py-2 px-3 rounded-lg bg-teal-500/80 hover:bg-teal-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
             >
               <span>View Reports</span>
               <ArrowRight size={13} />

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileEdit, Clock3, XCircle, CheckCircle2, FilePlus2, BadgeCheck,
-  CircleDollarSign, Wallet, Building2, ShieldCheck, ArrowRight
+  CircleDollarSign, Wallet, Building2, ShieldCheck, ArrowRight, BarChart3
 } from "lucide-react";
 import StatCard4 from "../components/ui/StatCard4";
 import DashboardClaimRow from "../components/claims/DashboardClaimRow";
@@ -58,12 +58,18 @@ export default function DashboardPage() {
       { label: "Awaiting Board Review", value: counts.further_approval, icon: Building2, accent: "#7C3AED", targetView: "further-approval" },
       { label: "Combined Value", value: fmtN(claims.filter((c) => c.status === "further_approval").reduce((s, c) => s + c.amount, 0)), icon: CircleDollarSign, accent: "#007A87", targetView: "further-approval" },
     ];
-  } else if (role === "admin") {
+  } else if (role === "admin" || role === "super_admin") {
     cards = [
       { label: "Total Claims", value: counts.total, icon: FileEdit, accent: "#007A87", targetView: "all-claims-list" },
       { label: "New Claims", value: counts.new, icon: FilePlus2, accent: "#0D857B", targetView: "new-claim-list" },
       { label: "Pending Claims", value: counts.pending, icon: Clock3, accent: "#B45309", targetView: "pending-claim-list" },
-      { label: "Paid Claims", value: counts.paid, icon: CheckCircle2, accent: "#15803D", targetView: "paid-list" },
+      {
+        label: role === "super_admin" ? "Financial Reports" : "Paid Claims",
+        value: role === "super_admin" ? "Analytics" : counts.paid,
+        icon: role === "super_admin" ? BarChart3 : CheckCircle2,
+        accent: "#15803D",
+        targetView: role === "super_admin" ? "reports" : "paid-list"
+      },
     ];
   }
 
@@ -112,6 +118,16 @@ export default function DashboardPage() {
             <p className="text-sm text-teal-100/80 mt-1 font-normal">
               Click any statistic card below to jump directly to its management page.
             </p>
+            {role === "super_admin" && (
+              <button
+                onClick={() => navigate("/reports")}
+                className="mt-3.5 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold border border-white/20 backdrop-blur-sm transition-all shadow-sm cursor-pointer"
+              >
+                <BarChart3 size={15} className="text-teal-200" />
+                <span>View Transaction Reports & Charts</span>
+                <ArrowRight size={13} />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-3 px-5 py-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm">
             <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">

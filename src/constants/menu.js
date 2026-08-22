@@ -41,7 +41,7 @@ export const MENU_ACCESS = {
   ceo:               ["dashboard", "verified-list", "track-claim"],
   accountant:        ["dashboard", "manage-claim-sheet", "all-claims-list", "approved-for-payment", "paid-list", "manage-asset", "track-claim"],
   admin:             ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "track-claim"],
-  super_admin:       ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "users", "track-claim"],
+  super_admin:       ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "users", "reports", "track-claim"],
   chairman:          ["dashboard", "further-approval", "track-claim"],
 };
 
@@ -60,6 +60,7 @@ export const VIEW_TITLES = {
   "new-asset-list": "New Asset List",
   "add-new-asset": "Add New Asset",
   users: "User Management",
+  reports: "Reports & Analytics",
   "track-claim": "Claim Processing Tracker",
 };
 
@@ -80,6 +81,7 @@ export const PATH_TO_VIEW = {
   "/assets/new-list": "new-asset-list",
   "/assets/add": "add-new-asset",
   "/users": "users",
+  "/reports": "reports",
 };
 
 // Map view keys -> URL paths (for navigation)
@@ -99,6 +101,7 @@ export const VIEW_TO_PATH = {
   "new-asset-list": "/assets/new-list",
   "add-new-asset": "/assets/add",
   users: "/users",
+  reports: "/reports",
 };
 
 export const NOTIF_COLORS = {
