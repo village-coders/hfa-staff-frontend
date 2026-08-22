@@ -21,7 +21,7 @@ export const T = {
   gray900: "#0F172A",
 };
 
-export const API_BASE_URL = "https://staff-portal-backend-mrxv.onrender.com/api/v1";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://api.hfaportal.company/api/v1";
 
 export const STATUS = {
   new:                   { label: "New",                   color: "#1D4ED8", bg: "#DBEAFE" },
