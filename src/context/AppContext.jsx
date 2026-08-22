@@ -204,10 +204,23 @@ export function AppProvider({ children }) {
     setNotifications([]);
   };
 
-  const handleTransition = async (id, newStatus, note) => {
+  const handleTransition = async (id, newStatus, note, targetRole) => {
     const claimObj = claims.find((c) => c.id === id || c._id === id);
     const dbId = claimObj?._id || id;
     const currentStatus = claimObj?.status;
+
+    // Determine target role for note routing
+    let derivedTargetRole = targetRole;
+    if (!derivedTargetRole) {
+      const lowerStatus = (newStatus || "").toLowerCase();
+      if (lowerStatus === "verified") derivedTargetRole = "ceo";
+      else if (lowerStatus === "further_approval") derivedTargetRole = "chairman";
+      else if (lowerStatus === "approved_for_payment") derivedTargetRole = "accountant";
+      else if (lowerStatus === "paid") derivedTargetRole = "user";
+      else if (lowerStatus === "pending") derivedTargetRole = "user";
+      else if (lowerStatus === "new") derivedTargetRole = "financial_officer";
+      else if (lowerStatus === "rejected") derivedTargetRole = "user";
+    }
 
     setTransitioningId(`${id}-${newStatus}`);
 
@@ -221,6 +234,7 @@ export function AppProvider({ children }) {
             fromStatus: c.status,
             toStatus: newStatus.toLowerCase(),
             note: note || "",
+            targetRole: derivedTargetRole,
             timestamp: new Date().toISOString(),
           };
           const updatedHistory = Array.isArray(c.history) ? [...c.history, newEntry] : [newEntry];
@@ -241,13 +255,20 @@ export function AppProvider({ children }) {
         res = await fetch(`${API_BASE_URL}/claims/${dbId}/resubmit`, {
           method: "PUT",
           headers: apiHeaders(),
-          body: JSON.stringify({ note: note || "Claim resubmitted after addressing feedback." }),
+          body: JSON.stringify({
+            note: note || "Claim resubmitted after addressing feedback.",
+            targetRole: derivedTargetRole,
+          }),
         });
       } else {
         res = await fetch(`${API_BASE_URL}/claims/${dbId}/transition`, {
           method: "PATCH",
           headers: apiHeaders(),
-          body: JSON.stringify({ newStatus: newStatus.toUpperCase(), note }),
+          body: JSON.stringify({
+            newStatus: newStatus.toUpperCase(),
+            note,
+            targetRole: derivedTargetRole,
+          }),
         });
       }
       if (!res.ok) console.error("Transition failed:", res.status);

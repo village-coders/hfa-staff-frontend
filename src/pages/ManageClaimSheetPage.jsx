@@ -102,9 +102,31 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
   const grandTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
 
   const handleNext = () => {
-    if (step === 1) { if (!claimantName.trim()) { alert("Please enter claimant name."); return; } }
-    else if (step === 2) { if (reasons.length === 0 || !reasons[0].option) { alert("Please select at least one claim reason option."); return; } }
-    else if (step === 3) { const validItem = items.some((i) => i.category); if (!validItem) { alert("Please select a description option for at least one item."); return; } }
+    if (step === 1) {
+      if (!claimantName.trim()) { alert("Please enter Claimant Name."); return; }
+      if (!claimType.trim()) { alert("Please select a Claim Type."); return; }
+      if (!claimDate) { alert("Please select a Filing Date."); return; }
+      if (!companyName.trim()) { alert("Please enter Company Name."); return; }
+      if (!contactPerson.trim()) { alert("Please enter Contact Person."); return; }
+      if (!contactEmail.trim()) { alert("Please enter Contact Email."); return; }
+    } else if (step === 2) {
+      const validReasons = reasons.filter((r) => r.option && r.option.trim());
+      if (validReasons.length === 0) {
+        alert("Please select at least one Claim Reason option.");
+        return;
+      }
+    } else if (step === 3) {
+      const validItems = items.filter((i) => i.category && i.category.trim());
+      if (validItems.length === 0) {
+        alert("Please select a description/category for at least one expense item.");
+        return;
+      }
+      const hasAmount = items.some((i) => (parseFloat(i.card) || 0) > 0 || (parseFloat(i.cash) || 0) > 0 || (parseFloat(i.total) || 0) > 0);
+      if (!hasAmount) {
+        alert("Please enter a valid expense amount (Credit Card or Cash) greater than 0.");
+        return;
+      }
+    }
     if (step < 4) setStep(step + 1);
   };
 
@@ -266,7 +288,9 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-2">Claimant Name</label>
+                <label className="text-xs font-bold text-slate-700 block mb-2">
+                  Claimant Name <span className="text-rose-500 font-bold">*</span>
+                </label>
                 <input
                   type="text"
                   required
@@ -277,7 +301,9 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-2">Claim Type</label>
+                <label className="text-xs font-bold text-slate-700 block mb-2">
+                  Claim Type <span className="text-rose-500 font-bold">*</span>
+                </label>
                 <select
                   value={claimType}
                   onChange={(e) => setClaimType(e.target.value)}
@@ -302,7 +328,9 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-2">Filing Date</label>
+                <label className="text-xs font-bold text-slate-700 block mb-2">
+                  Filing Date <span className="text-rose-500 font-bold">*</span>
+                </label>
                 <input
                   type="date"
                   required
@@ -315,9 +343,12 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-2">Company Name</label>
+                <label className="text-xs font-bold text-slate-700 block mb-2">
+                  Company Name <span className="text-rose-500 font-bold">*</span>
+                </label>
                 <input
                   type="text"
+                  required
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   placeholder="Halal Food Authority"
@@ -326,9 +357,12 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-2">Contact Person</label>
+                <label className="text-xs font-bold text-slate-700 block mb-2">
+                  Contact Person <span className="text-rose-500 font-bold">*</span>
+                </label>
                 <input
                   type="text"
+                  required
                   value={contactPerson}
                   onChange={(e) => setContactPerson(e.target.value)}
                   placeholder="e.g. Line Manager Name"
@@ -337,9 +371,12 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-2">Contact E-Mail</label>
+                <label className="text-xs font-bold text-slate-700 block mb-2">
+                  Contact E-Mail <span className="text-rose-500 font-bold">*</span>
+                </label>
                 <input
                   type="email"
+                  required
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
                   placeholder="email@hfa.org"
@@ -359,7 +396,9 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">Claim Reasons & Options</h3>
-                  <p className="text-xs text-slate-500 font-normal">Specify business reasons for this expense claim.</p>
+                  <p className="text-xs text-slate-500 font-normal">
+                    Specify business reasons for this expense claim <span className="text-rose-500 font-bold">(at least 1 required *)</span>.
+                  </p>
                 </div>
               </div>
 
@@ -381,7 +420,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                       onChange={(e) => updateReason(r.id, "option", e.target.value)}
                       className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-teal-500 bg-white"
                     >
-                      <option value="">....Select Option....</option>
+                      <option value="">....Select Option (Required *)....</option>
                       <option value="Overseas Travel">Overseas Travel</option>
                       <option value="Training">Training</option>
                       <option value="Other Authorised">Other Authorised</option>
@@ -430,7 +469,9 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">Expense Itemization Breakdown</h3>
-                  <p className="text-xs text-slate-500 font-normal">Add each individual expenditure with currency and payment method.</p>
+                  <p className="text-xs text-slate-500 font-normal">
+                    Add each individual expenditure with currency and payment method <span className="text-rose-500 font-bold">(at least 1 required *)</span>.
+                  </p>
                 </div>
               </div>
 

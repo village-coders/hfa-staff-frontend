@@ -63,7 +63,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
   const currentStatus = claim.status;
   const refNo = claim.id || claim.claimRefNo || "Claim";
 
-  if ((currentStatus === "new" || currentStatus === "pending") && (role === "financial_officer" || role === "admin")) {
+  if ((currentStatus === "new" || currentStatus === "pending") && (role === "financial_officer" || role === "admin" || role === "super_admin")) {
     buttons.push(
       btn("Verify", () =>
         requestConfirmation({
@@ -71,7 +71,10 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to verify claim ${refNo}? This will forward it to the CEO for review.`,
           confirmLabel: "Verify Claim",
           confirmVariant: "primary",
-          onConfirm: () => onTransition(claim.id, "verified"),
+          withNote: true,
+          notePlaceholder: "Add note for CEO review (e.g. Invoices verified, expenses within policy)...",
+          noteLabel: "Note for CEO Review",
+          onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
         }),
         { color: T.tealLight }
       )
@@ -89,14 +92,17 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to reject claim ${refNo}? The claimant will be notified.`,
           confirmLabel: "Reject Claim",
           confirmVariant: "danger",
-          onConfirm: () => onTransition(claim.id, "rejected"),
+          withNote: true,
+          notePlaceholder: "Reason for claim rejection...",
+          noteLabel: "Rejection Reason",
+          onConfirm: (note) => onTransition(claim.id, "rejected", note, "user"),
         }),
         { color: "#B91C1C" }
       )
     );
   }
 
-  if (currentStatus === "verified" && (role === "ceo" || role === "admin")) {
+  if (currentStatus === "verified" && (role === "ceo" || role === "admin" || role === "super_admin")) {
     buttons.push(
       btn("Send to Accountant", () =>
         requestConfirmation({
@@ -104,7 +110,10 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to approve claim ${refNo} and forward it to the Accountant for payment disbursement?`,
           confirmLabel: "Send to Accountant",
           confirmVariant: "primary",
-          onConfirm: () => onTransition(claim.id, "approved_for_payment"),
+          withNote: true,
+          notePlaceholder: "Payment disbursement instructions for Accountant...",
+          noteLabel: "Note for Accountant",
+          onConfirm: (note) => onTransition(claim.id, "approved_for_payment", note, "accountant"),
         }),
         { color: T.tealLight }
       )
@@ -116,7 +125,10 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to escalate claim ${refNo} to the Board of Directors for further approval?`,
           confirmLabel: "Send to Board",
           confirmVariant: "warning",
-          onConfirm: () => onTransition(claim.id, "further_approval"),
+          withNote: true,
+          notePlaceholder: "Justification for Board approval...",
+          noteLabel: "Note for Board Review",
+          onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
         }),
         { color: T.gray700 }
       )
@@ -128,14 +140,17 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to return claim ${refNo} to the Financial Officer for re-evaluation?`,
           confirmLabel: "Return Claim",
           confirmVariant: "warning",
-          onConfirm: () => onTransition(claim.id, "pending"),
+          withNote: true,
+          notePlaceholder: "Instructions / reason for return to Financial Officer...",
+          noteLabel: "Return Reason / Note",
+          onConfirm: (note) => onTransition(claim.id, "pending", note, "financial_officer"),
         }),
         { color: "#B45309" }
       )
     );
   }
 
-  if (currentStatus === "further_approval" && (role === "chairman" || role === "admin")) {
+  if (currentStatus === "further_approval" && (role === "chairman" || role === "admin" || role === "super_admin")) {
     buttons.push(
       btn("Approve — Return to CEO", () =>
         requestConfirmation({
@@ -143,7 +158,10 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to approve claim ${refNo} and return it to the CEO for final action?`,
           confirmLabel: "Approve Claim",
           confirmVariant: "primary",
-          onConfirm: () => onTransition(claim.id, "verified"),
+          withNote: true,
+          notePlaceholder: "Board resolution / approval note for CEO...",
+          noteLabel: "Board Note for CEO",
+          onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
         }),
         { color: T.tealLight }
       )
@@ -155,14 +173,17 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to reject claim ${refNo}?`,
           confirmLabel: "Reject Claim",
           confirmVariant: "danger",
-          onConfirm: () => onTransition(claim.id, "rejected"),
+          withNote: true,
+          notePlaceholder: "Reason for claim rejection...",
+          noteLabel: "Rejection Reason",
+          onConfirm: (note) => onTransition(claim.id, "rejected", note, "user"),
         }),
         { color: "#B91C1C" }
       )
     );
   }
 
-  if (currentStatus === "approved_for_payment" && (role === "accountant" || role === "admin")) {
+  if (currentStatus === "approved_for_payment" && (role === "accountant" || role === "admin" || role === "super_admin")) {
     buttons.push(
       btn("Mark as Paid", () =>
         requestConfirmation({
@@ -170,14 +191,17 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to mark claim ${refNo} as Paid?`,
           confirmLabel: "Mark as Paid",
           confirmVariant: "primary",
-          onConfirm: () => onTransition(claim.id, "paid"),
+          withNote: true,
+          notePlaceholder: "Transaction reference / payment settlement note...",
+          noteLabel: "Payment Reference / Note",
+          onConfirm: (note) => onTransition(claim.id, "paid", note, "user"),
         }),
         { color: T.tealLight }
       )
     );
   }
 
-  if (currentStatus === "pending" && role === "user") {
+  if (currentStatus === "pending" && (role === "user" || role === "admin" || role === "super_admin")) {
     buttons.push(
       btn("Resubmit Claim", () =>
         requestConfirmation({
@@ -185,7 +209,10 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to resubmit claim ${refNo} for review?`,
           confirmLabel: "Resubmit",
           confirmVariant: "primary",
-          onConfirm: () => onTransition(claim.id, "new"),
+          withNote: true,
+          notePlaceholder: "Summary of updates / responses to feedback...",
+          noteLabel: "Resubmission Note",
+          onConfirm: (note) => onTransition(claim.id, "new", note, "financial_officer"),
         }),
         { color: T.tealLight }
       )
@@ -200,6 +227,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message: `Are you sure you want to permanently delete claim ${refNo}? This action cannot be undone.`,
           confirmLabel: "Delete Permanently",
           confirmVariant: "danger",
+          withNote: false,
           onConfirm: () => onDelete(claim.id),
         }),
         { color: "#B91C1C" }

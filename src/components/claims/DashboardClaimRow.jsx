@@ -97,7 +97,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                   <Activity size={14} /> Track Processing
                 </button>
 
-                {(currentStatus === "new" || currentStatus === "pending") && (role === "financial_officer" || role === "admin") && (
+                {(currentStatus === "new" || currentStatus === "pending") && (role === "financial_officer" || role === "admin" || role === "super_admin") && (
                   <>
                     <button
                       onClick={() =>
@@ -106,7 +106,10 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                           message: `Are you sure you want to verify claim ${refNo}? This will forward it to the CEO.`,
                           confirmLabel: "Verify Claim",
                           confirmVariant: "primary",
-                          onConfirm: () => onTransition(claim.id, "verified"),
+                          withNote: true,
+                          notePlaceholder: "Add note for CEO review...",
+                          noteLabel: "Note for CEO Review",
+                          onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
                         })
                       }
                       className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
@@ -126,7 +129,10 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                           message: `Are you sure you want to reject claim ${refNo}?`,
                           confirmLabel: "Reject Claim",
                           confirmVariant: "danger",
-                          onConfirm: () => onTransition(claim.id, "rejected"),
+                          withNote: true,
+                          notePlaceholder: "Reason for rejection...",
+                          noteLabel: "Rejection Reason",
+                          onConfirm: (note) => onTransition(claim.id, "rejected", note, "user"),
                         })
                       }
                       className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 cursor-pointer"
@@ -135,7 +141,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     </button>
                   </>
                 )}
-                {currentStatus === "verified" && (role === "ceo" || role === "admin") && (
+                {currentStatus === "verified" && (role === "ceo" || role === "admin" || role === "super_admin") && (
                   <>
                     <button
                       onClick={() =>
@@ -144,7 +150,10 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                           message: `Are you sure you want to send claim ${refNo} to the Accountant for payment?`,
                           confirmLabel: "Send to Accountant",
                           confirmVariant: "primary",
-                          onConfirm: () => onTransition(claim.id, "approved_for_payment"),
+                          withNote: true,
+                          notePlaceholder: "Payment disbursement instructions for Accountant...",
+                          noteLabel: "Note for Accountant",
+                          onConfirm: (note) => onTransition(claim.id, "approved_for_payment", note, "accountant"),
                         })
                       }
                       className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
@@ -158,7 +167,10 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                           message: `Are you sure you want to send claim ${refNo} to the Board for approval?`,
                           confirmLabel: "Send to Board",
                           confirmVariant: "warning",
-                          onConfirm: () => onTransition(claim.id, "further_approval"),
+                          withNote: true,
+                          notePlaceholder: "Justification for Board approval...",
+                          noteLabel: "Note for Board Review",
+                          onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
                         })
                       }
                       className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-purple-50 text-purple-700 flex items-center gap-2 cursor-pointer"
@@ -172,7 +184,10 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                           message: `Are you sure you want to return claim ${refNo} to the Financial Officer?`,
                           confirmLabel: "Return Claim",
                           confirmVariant: "warning",
-                          onConfirm: () => onTransition(claim.id, "pending"),
+                          withNote: true,
+                          notePlaceholder: "Reason for returning to Financial Officer...",
+                          noteLabel: "Return Reason / Note",
+                          onConfirm: (note) => onTransition(claim.id, "pending", note, "financial_officer"),
                         })
                       }
                       className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-amber-50 text-amber-700 flex items-center gap-2 cursor-pointer"
@@ -181,7 +196,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     </button>
                   </>
                 )}
-                {currentStatus === "further_approval" && (role === "chairman" || role === "admin") && (
+                {currentStatus === "further_approval" && (role === "chairman" || role === "admin" || role === "super_admin") && (
                   <>
                     <button
                       onClick={() =>
@@ -190,7 +205,10 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                           message: `Are you sure you want to approve claim ${refNo} and return it to the CEO?`,
                           confirmLabel: "Approve Claim",
                           confirmVariant: "primary",
-                          onConfirm: () => onTransition(claim.id, "verified"),
+                          withNote: true,
+                          notePlaceholder: "Board resolution / approval note for CEO...",
+                          noteLabel: "Board Note for CEO",
+                          onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
                         })
                       }
                       className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
@@ -204,7 +222,10 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                           message: `Are you sure you want to reject claim ${refNo}?`,
                           confirmLabel: "Reject Claim",
                           confirmVariant: "danger",
-                          onConfirm: () => onTransition(claim.id, "rejected"),
+                          withNote: true,
+                          notePlaceholder: "Reason for rejection...",
+                          noteLabel: "Rejection Reason",
+                          onConfirm: (note) => onTransition(claim.id, "rejected", note, "user"),
                         })
                       }
                       className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 cursor-pointer"
@@ -213,7 +234,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     </button>
                   </>
                 )}
-                {currentStatus === "approved_for_payment" && (role === "accountant" || role === "admin") && (
+                {currentStatus === "approved_for_payment" && (role === "accountant" || role === "admin" || role === "super_admin") && (
                   <button
                     onClick={() =>
                       requestConfirm({
@@ -221,7 +242,10 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                         message: `Are you sure you want to mark claim ${refNo} as Paid?`,
                         confirmLabel: "Mark as Paid",
                         confirmVariant: "primary",
-                        onConfirm: () => onTransition(claim.id, "paid"),
+                        withNote: true,
+                        notePlaceholder: "Transaction reference / payment settlement note...",
+                        noteLabel: "Payment Reference / Note",
+                        onConfirm: (note) => onTransition(claim.id, "paid", note, "user"),
                       })
                     }
                     className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-emerald-50 text-emerald-700 flex items-center gap-2 cursor-pointer"
@@ -229,7 +253,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     <CheckCircle2 size={14} /> Mark as Paid
                   </button>
                 )}
-                {currentStatus === "pending" && role === "user" && (
+                {currentStatus === "pending" && (role === "user" || role === "admin" || role === "super_admin") && (
                   <button
                     onClick={() =>
                       requestConfirm({
@@ -237,7 +261,10 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                         message: `Are you sure you want to resubmit claim ${refNo}?`,
                         confirmLabel: "Resubmit",
                         confirmVariant: "primary",
-                        onConfirm: () => onTransition(claim.id, "new"),
+                        withNote: true,
+                        notePlaceholder: "Summary of changes / response to feedback...",
+                        noteLabel: "Resubmission Note",
+                        onConfirm: (note) => onTransition(claim.id, "new", note, "financial_officer"),
                       })
                     }
                     className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"

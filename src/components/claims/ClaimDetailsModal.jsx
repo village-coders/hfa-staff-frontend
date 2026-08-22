@@ -2,12 +2,15 @@ import React from "react";
 import { createPortal } from "react-dom";
 import {
   X, FileText, Calendar, Building, User,
-  Tag, FileCheck2, Info, Paperclip, CreditCard, Wallet, Percent, DollarSign
+  Tag, FileCheck2, Info, Paperclip, CreditCard, Wallet, Percent, DollarSign,
+  MessageSquare, Lock, Shield
 } from "lucide-react";
 import StatusBadge from "../ui/StatusBadge";
 import { fmtN } from "../../constants/theme";
+import { useApp } from "../../context/AppContext";
 
 export default function ClaimDetailsModal({ claim, onClose }) {
+  const { role, currentUser } = useApp();
   if (!claim) return null;
 
   const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€" };
@@ -290,13 +293,88 @@ export default function ClaimDetailsModal({ claim, onClose }) {
             </div>
           )}
 
-          {/* Officer Notes or Feedback */}
-          {claim.note && (
-            <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200/80">
-              <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-1">Officer Notes / Feedback</p>
-              <p className="text-xs font-medium text-amber-800 leading-relaxed">{claim.note}</p>
-            </div>
-          )}
+          {/* Action Notes & Workflow History Notes (Restricted Visibility) */}
+          {(() => {
+            const history = Array.isArray(claim.history) ? claim.history : [];
+            const isSuperAdmin = role === "super_admin";
+
+            const roleLabels = {
+              ceo: "CEO",
+              chairman: "Chairman / Board",
+              accountant: "Accountant",
+              financial_officer: "Financial Officer",
+              admin: "Admin",
+              super_admin: "Super Admin",
+              user: "Claimant / Staff",
+            };
+
+            // Filter history entries with notes that this user is allowed to see
+            const visibleNotes = history.filter((entry) => {
+              if (!entry.note || !entry.note.trim()) return false;
+              if (isSuperAdmin) return true;
+              if (entry.targetRole && role === entry.targetRole) return true;
+              if (entry.actorRole && role === entry.actorRole) return true;
+              if (entry.targetRole === "user" && (claim.claimant === currentUser || role === "user")) return true;
+              return false;
+            });
+
+            // Also check fallback claim.note if no history entries match
+            const showFallbackNote = claim.note && visibleNotes.length === 0 && (
+              isSuperAdmin ||
+              claim.claimant === currentUser ||
+              role === "financial_officer" ||
+              role === "ceo" ||
+              role === "accountant" ||
+              role === "chairman"
+            );
+
+            if (visibleNotes.length === 0 && !showFallbackNote) return null;
+
+            return (
+              <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <MessageSquare size={14} className="text-amber-700" />
+                    <span>Action & Transition Notes</span>
+                  </h4>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-200/60 text-amber-900 flex items-center gap-1">
+                    <Lock size={10} /> Confidential (Target Role & Super Admin only)
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {visibleNotes.map((entry, idx) => (
+                    <div key={idx} className="p-3 bg-white rounded-xl border border-amber-200/70 shadow-xs space-y-1">
+                      <div className="flex items-center justify-between text-[11px] flex-wrap gap-1">
+                        <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                          <span className="text-teal-700">{entry.actorName || "Officer"}</span>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                            {roleLabels[entry.actorRole] || entry.actorRole}
+                          </span>
+                          <span className="text-slate-400 font-normal">→</span>
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                            For: {roleLabels[entry.targetRole] || entry.targetRole || "Next Reviewer"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400">
+                          {entry.timestamp ? new Date(entry.timestamp).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : ""}
+                        </span>
+                      </div>
+                      <p className="text-xs font-medium text-slate-700 leading-relaxed pt-0.5">
+                        {entry.note}
+                      </p>
+                    </div>
+                  ))}
+
+                  {showFallbackNote && (
+                    <div className="p-3 bg-white rounded-xl border border-amber-200/70 shadow-xs">
+                      <p className="text-xs font-medium text-amber-900 leading-relaxed">{claim.note}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Itemized Expenses Table */}
           {items.length > 0 && (
