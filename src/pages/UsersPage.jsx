@@ -14,7 +14,7 @@ export default function UsersPage() {
   const [form, setForm] = useState({ name: "", email: "", username: "", role: "user", password: "" });
   const [editForm, setEditForm] = useState({ name: "", email: "", username: "", role: "user", password: "" });
 
-  const isAdmin = role === "admin";
+  const isSuperAdmin = role === "super_admin";
 
   const submitAdd = (e) => {
     e.preventDefault();
@@ -43,7 +43,7 @@ export default function UsersPage() {
           <h2 className="text-lg font-bold text-slate-900">User Management</h2>
           <p className="text-xs text-slate-500 font-medium">Manage organization accounts, credentials and system permissions.</p>
         </div>
-        {isAdmin && (
+        {isSuperAdmin && (
           <button
             onClick={() => setShowForm(!showForm)}
             className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold rounded-xl text-white bg-teal-600 hover:bg-teal-700 shadow-md transition-colors cursor-pointer"
@@ -99,7 +99,7 @@ export default function UsersPage() {
                 <th className="text-left px-5 py-3">Username</th>
                 <th className="text-left px-5 py-3">Email</th>
                 <th className="text-left px-5 py-3">Role</th>
-                {isAdmin && <th className="text-center px-5 py-3 w-28">Action</th>}
+                {isSuperAdmin && <th className="text-center px-5 py-3 w-28">Action</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -115,7 +115,7 @@ export default function UsersPage() {
                         {roleInfo?.label || u.role}
                       </span>
                     </td>
-                    {isAdmin && (
+                    {isSuperAdmin && (
                       <td className="px-5 py-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button

@@ -20,7 +20,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
-  const [claimantName, setClaimantName] = useState(currentUser || "Taoheed");
+  const [claimantName, setClaimantName] = useState(currentUser || "");
   const [claimRefNo] = useState("MDOS-" + Math.floor(10000000000000 + Math.random() * 90000000000000));
   const [claimType, setClaimType] = useState("Staff Expense");
   const [companyName, setCompanyName] = useState("Halal Food Authority");
@@ -29,11 +29,11 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
   const [claimDate, setClaimDate] = useState(new Date().toISOString().slice(0, 10));
 
   const [reasons, setReasons] = useState([
-    { id: 1, option: "Official Duty Expense", chg: false }
+    { id: 1, option: "", chg: false }
   ]);
 
   const [items, setItems] = useState([
-    { id: 1, type: "In Budget", category: "Taxi Fare", note: "", currency: "GBP", payMode: "cash", card: 0, cash: 15, bank: 0, vat: 0, total: 15 }
+    { id: 1, type: "In Budget", category: "", note: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }
   ]);
 
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -70,8 +70,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
           else if (field === "cash" && parseFloat(value) > 0) { updated.card = 0; updated.payMode = "cash"; }
           const card = parseFloat(updated.card) || 0;
           const cash = parseFloat(updated.cash) || 0;
-          const vat = parseFloat(updated.vat) || 0;
-          updated.total = card + cash + vat;
+          updated.total = card + cash;
           return updated;
         }
         return item;

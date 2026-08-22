@@ -13,6 +13,7 @@ export const ROLES = [
   { id: "ceo", label: "CEO", icon: Landmark },
   { id: "accountant", label: "Accountant", icon: Calculator },
   { id: "admin", label: "Admin", icon: ShieldCheck },
+  { id: "super_admin", label: "Super Admin", icon: ShieldCheck },
   { id: "chairman", label: "Chairman (Board)", icon: Building2 },
 ];
 
@@ -39,7 +40,8 @@ export const MENU_ACCESS = {
   financial_officer: ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "track-claim"],
   ceo:               ["dashboard", "verified-list", "track-claim"],
   accountant:        ["dashboard", "manage-claim-sheet", "all-claims-list", "approved-for-payment", "paid-list", "manage-asset", "track-claim"],
-  admin:             ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "users", "track-claim"],
+  admin:             ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "track-claim"],
+  super_admin:       ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "users", "track-claim"],
   chairman:          ["dashboard", "further-approval", "track-claim"],
 };
 

@@ -19,7 +19,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
   const cardSubtotal = claim.subtotals?.subtotalCard ?? items.reduce((sum, i) => sum + (parseFloat(i.card) || 0), 0);
   const cashSubtotal = claim.subtotals?.subtotalCash ?? items.reduce((sum, i) => sum + (parseFloat(i.cash) || 0), 0);
   const vatSubtotal = claim.subtotals?.subtotalVat ?? items.reduce((sum, i) => sum + (parseFloat(i.vat) || 0), 0);
-  const grandTotal = claim.subtotals?.grandTotal ?? claim.amount ?? (cardSubtotal + cashSubtotal + vatSubtotal);
+  const grandTotal = claim.subtotals?.grandTotal ?? claim.amount ?? (cardSubtotal + cashSubtotal);
 
   return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-fade-in">
@@ -316,6 +316,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                         <th className="text-right px-3 py-3">Cash</th>
                         <th className="text-right px-3 py-3">VAT</th>
                         <th className="text-right px-4 py-3">Total Amount</th>
+                        <th className="text-left px-4 py-3">Note</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
@@ -325,7 +326,6 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                           <tr key={idx} className="hover:bg-slate-50 transition-colors">
                             <td className="px-4 py-3 font-bold text-slate-900">
                               {item.category || item.description || `Item ${idx + 1}`}
-                              {item.note && <p className="text-[10px] text-slate-500 font-medium mt-0.5">{item.note}</p>}
                             </td>
                             <td className="px-3 py-3 text-slate-600 font-medium">{item.type || "In Budget"}</td>
                             <td className="px-3 py-3 text-right text-slate-600">{item.card ? fmtCurrency(item.card, symbol) : "-"}</td>
@@ -333,6 +333,15 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                             <td className="px-3 py-3 text-right text-slate-500">{item.vat ? fmtCurrency(item.vat, symbol) : "-"}</td>
                             <td className="px-4 py-3 text-right font-extrabold text-teal-800">
                               {fmtCurrency(item.total || item.amount || 0, symbol)}
+                            </td>
+                            <td className="px-4 py-3 text-left">
+                              {item.note ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-amber-50 text-amber-900 border border-amber-200 shadow-sm max-w-[200px] truncate" title={item.note}>
+                                  📝 {item.note}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-mono text-[11px]">-</span>
+                              )}
                             </td>
                           </tr>
                         );

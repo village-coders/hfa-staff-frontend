@@ -24,24 +24,28 @@ export default function ClaimsPage() {
   const [selectedClaimForDetails, setSelectedClaimForDetails] = useState(null);
 
   let filtered = viewKey === "all-claims-list"
-    ? claims
-    : item.status
-      ? claims.filter((c) => c.status === item.status)
-      : claims;
+    ? (claims || [])
+    : (item && item.status)
+      ? (claims || []).filter((c) => c && c.status === item.status)
+      : (claims || []);
 
   // Role-based visibility filtering
   if (role === "user") {
-    filtered = filtered.filter((c) => c.claimant === currentUser);
+    filtered = filtered.filter((c) => c && (c.claimant === currentUser || c.claimantName === currentUser));
   } else if (role === "ceo") {
-    filtered = filtered.filter((c) => c.status === "verified" || c.claimant === currentUser);
+    filtered = filtered.filter((c) => c && (c.status === "verified" || c.claimant === currentUser || c.claimantName === currentUser));
   } else if (role === "chairman") {
-    filtered = filtered.filter((c) => c.status === "further_approval");
+    filtered = filtered.filter((c) => c && c.status === "further_approval");
   }
 
   if (search) {
     const q = search.toLowerCase();
     filtered = filtered.filter(
-      (c) => c.claimant.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || (c.title && c.title.toLowerCase().includes(q))
+      (c) =>
+        c &&
+        (((c.claimant || c.claimantName || "").toLowerCase().includes(q)) ||
+          ((c.id || c.claimRefNo || "").toLowerCase().includes(q)) ||
+          ((c.title || "").toLowerCase().includes(q)))
     );
   }
 
@@ -106,14 +110,14 @@ export default function ClaimsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {paged.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-5 py-3.5 font-semibold text-teal-800 whitespace-nowrap">{c.id}</td>
-                      <td className="px-5 py-3.5 font-medium text-slate-900 whitespace-nowrap">{c.claimant}</td>
-                      <td className="px-5 py-3.5 text-slate-700">{c.title}</td>
-                      <td className="px-5 py-3.5 font-semibold text-slate-900 whitespace-nowrap">{fmtN(c.amount)}</td>
-                      <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">{c.date}</td>
-                      <td className="px-5 py-3.5"><StatusBadge status={c.status} /></td>
+                  {paged.map((c, idx) => (
+                    <tr key={c.id || c._id || idx} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3.5 font-semibold text-teal-800 whitespace-nowrap">{c.id || c.claimRefNo || c._id}</td>
+                      <td className="px-5 py-3.5 font-medium text-slate-900 whitespace-nowrap">{c.claimant || c.claimantName || "User"}</td>
+                      <td className="px-5 py-3.5 text-slate-700">{c.title || "General Expense Claim"}</td>
+                      <td className="px-5 py-3.5 font-semibold text-slate-900 whitespace-nowrap">{fmtN(c.amount || 0)}</td>
+                      <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">{c.date || "N/A"}</td>
+                      <td className="px-5 py-3.5"><StatusBadge status={c.status || "new"} /></td>
                       <td className="px-5 py-3.5">
                         <ClaimActions
                           claim={c}

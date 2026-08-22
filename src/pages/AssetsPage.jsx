@@ -22,7 +22,7 @@ export default function AssetsPage() {
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [assetToDelete, setAssetToDelete] = useState(null);
 
-  const isAdmin = role === "admin";
+  const isSuperAdmin = role === "super_admin";
   const pageSize = 10;
   const paged = assets.slice((page - 1) * pageSize, page * pageSize);
 
@@ -92,7 +92,7 @@ export default function AssetsPage() {
                       >
                         <Eye size={14} />
                       </button>
-                      {isAdmin && handleDeleteAsset && (
+                      {isSuperAdmin && handleDeleteAsset && (
                         <button
                           onClick={() => setAssetToDelete(a)}
                           className="p-1.5 rounded-md border border-rose-100 text-rose-600 hover:bg-rose-50 shadow-sm transition-colors cursor-pointer"

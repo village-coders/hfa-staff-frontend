@@ -59,13 +59,13 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
         className="px-5 py-4 font-semibold text-teal-800 cursor-pointer"
         onClick={() => navigate(VIEW_TO_PATH["all-claims-list"])}
       >
-        {claim.id}
+        {claim.id || claim.claimRefNo || claim._id}
       </td>
-      <td className="px-5 py-4 font-medium text-slate-900">{claim.claimant}</td>
-      <td className="px-5 py-4 text-slate-600">{claim.dept}</td>
-      <td className="px-5 py-4 font-semibold text-slate-900">{fmtN(claim.amount)}</td>
-      <td className="px-5 py-4 text-slate-500">{claim.date}</td>
-      <td className="px-5 py-4"><StatusBadge status={claim.status} /></td>
+      <td className="px-5 py-4 font-medium text-slate-900">{claim.claimant || claim.claimantName || "User"}</td>
+      <td className="px-5 py-4 text-slate-600">{claim.dept || "Operations"}</td>
+      <td className="px-5 py-4 font-semibold text-slate-900">{fmtN(claim.amount || 0)}</td>
+      <td className="px-5 py-4 text-slate-500">{claim.date || "N/A"}</td>
+      <td className="px-5 py-4"><StatusBadge status={claim.status || "new"} /></td>
       <td className="px-5 py-4 text-center">
         <div className="relative inline-block text-left" ref={ref}>
           {transitioningId && transitioningId.startsWith(`${claim.id}-`) ? (
@@ -245,7 +245,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     Resubmit Claim
                   </button>
                 )}
-                {role === "admin" && (
+                {role === "super_admin" && (
                   <button
                     onClick={() =>
                       requestConfirm({

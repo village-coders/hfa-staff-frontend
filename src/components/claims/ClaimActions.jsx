@@ -192,7 +192,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     );
   }
 
-  if (role === "admin" && view !== "manage-claim-sheet") {
+  if (role === "super_admin" && view !== "manage-claim-sheet") {
     buttons.push(
       btn("Delete", () =>
         requestConfirmation({
