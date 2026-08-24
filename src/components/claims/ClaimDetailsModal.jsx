@@ -308,24 +308,34 @@ export default function ClaimDetailsModal({ claim, onClose }) {
               user: "Claimant / Staff",
             };
 
+            const isAdmin = role === "admin" || role === "super_admin";
+            const isClaimant = (claim.claimant === currentUser || claim.claimantName === currentUser || role === "user") && !isAdmin;
+
             // Filter history entries with notes that this user is allowed to see
             const visibleNotes = history.filter((entry) => {
               if (!entry.note || !entry.note.trim()) return false;
-              if (isSuperAdmin) return true;
+              // Admin & Super Admin see all notes
+              if (isAdmin) return true;
+              // The claimant who created the claim CANNOT see internal transition notes for officers
+              if (isClaimant && entry.targetRole !== "user") return false;
+              // Recipient whom the note was sent to sees it
               if (entry.targetRole && role === entry.targetRole) return true;
+              // Officer who wrote the note sees it
               if (entry.actorRole && role === entry.actorRole) return true;
-              if (entry.targetRole === "user" && (claim.claimant === currentUser || role === "user")) return true;
+              // Claimant sees notes targeted directly to "user" (feedback / rejection notes)
+              if (isClaimant && entry.targetRole === "user") return true;
               return false;
             });
 
             // Also check fallback claim.note if no history entries match
             const showFallbackNote = claim.note && visibleNotes.length === 0 && (
-              isSuperAdmin ||
-              claim.claimant === currentUser ||
-              role === "financial_officer" ||
-              role === "ceo" ||
-              role === "accountant" ||
-              role === "chairman"
+              isAdmin ||
+              (!isClaimant && (
+                role === "financial_officer" ||
+                role === "ceo" ||
+                role === "accountant" ||
+                role === "chairman"
+              ))
             );
 
             if (visibleNotes.length === 0 && !showFallbackNote) return null;
