@@ -79,9 +79,20 @@ export function AppProvider({ children }) {
     async function fetchAll() {
       setLoading(true);
 
+      // Helper: if any endpoint returns 401/403 the token is stale — log out
+      const checkAuth = (res) => {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("ifrs_user");
+          localStorage.removeItem("token");
+          setLoggedInUser(null);
+          return false;
+        }
+        return res.ok;
+      };
+
       try {
         const claimsRes = await fetch(`${API_BASE_URL}/claims`, { headers });
-        if (claimsRes.ok) {
+        if (checkAuth(claimsRes)) {
           const d = await claimsRes.json();
           const list = extractList(d);
           const mapped = list.map((c) => ({
@@ -116,7 +127,7 @@ export function AppProvider({ children }) {
 
       try {
         const usersRes = await fetch(`${API_BASE_URL}/users`, { headers });
-        if (usersRes.ok) {
+        if (checkAuth(usersRes)) {
           const d = await usersRes.json();
           const list = extractList(d);
           const mapped = list.map((u) => ({
@@ -132,7 +143,7 @@ export function AppProvider({ children }) {
 
       try {
         const assetsRes = await fetch(`${API_BASE_URL}/assets`, { headers });
-        if (assetsRes.ok) {
+        if (checkAuth(assetsRes)) {
           const d = await assetsRes.json();
           const list = extractList(d);
           const mapped = list.map((a) => ({
@@ -160,7 +171,7 @@ export function AppProvider({ children }) {
 
       try {
         const notifRes = await fetch(`${API_BASE_URL}/notifications`, { headers });
-        if (notifRes.ok) {
+        if (checkAuth(notifRes)) {
           const d = await notifRes.json();
           const list = extractList(d);
           const mapped = list.map((n) => ({

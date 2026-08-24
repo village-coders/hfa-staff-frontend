@@ -184,7 +184,7 @@ export default function Topbar({ role, setMobileOpen, notifications, onMarkAllRe
             className="flex items-center gap-3 p-1 pl-2 pr-3 rounded-full hover:bg-slate-100 transition-colors border border-slate-200 bg-white"
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-600 to-slate-700 text-white flex items-center justify-center font-bold text-xs shadow-inner">
-              {currentUser.charAt(0).toUpperCase()}
+              {(currentUser || "?").charAt(0).toUpperCase()}
             </div>
             <div className="hidden sm:block text-left">
               <p className="text-xs font-semibold text-slate-900 leading-none">{currentUser}</p>
@@ -200,7 +200,7 @@ export default function Topbar({ role, setMobileOpen, notifications, onMarkAllRe
               <div className="px-4 py-3 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-600 to-slate-700 text-white flex items-center justify-center font-bold text-sm shadow">
-                    {currentUser.charAt(0).toUpperCase()}
+                    {(currentUser || "?").charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-900">{currentUser}</p>
