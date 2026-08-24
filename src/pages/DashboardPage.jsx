@@ -212,7 +212,7 @@ export default function DashboardPage() {
       {feedbackClaim && createPortal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-in my-auto">
-            <h3 className="font-extrabold text-base text-slate-900 mb-1">Send Feedback</h3>
+            <h3 className="font-extrabold text-base text-slate-900 mb-1">Send to Pending</h3>
             <p className="text-xs text-slate-500 font-medium mb-4">To {feedbackClaim.claimant || feedbackClaim.claimantName} regarding {feedbackClaim.id}.</p>
             <textarea
               value={feedbackText}
@@ -234,7 +234,7 @@ export default function DashboardPage() {
                 onClick={submitFeedback}
                 className="px-5 py-2 text-xs font-bold rounded-xl text-white bg-teal-600 hover:bg-teal-700 shadow-md transition-colors cursor-pointer"
               >
-                Send Feedback
+                Send to Pending
               </button>
             </div>
           </div>

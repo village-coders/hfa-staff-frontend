@@ -82,7 +82,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     );
     if (currentStatus === "new") {
       buttons.push(
-        btn("Send Feedback", () => {
+        btn("Send to Pending", () => {
           setOpen(false);
           onOpenFeedback(claim);
         }, { color: T.gray700 })
