@@ -28,12 +28,14 @@ export function AppProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [transitioningId, setTransitioningId] = useState(null);
-  const [toast, setToast] = useState(null);
+  const [toasts, setToasts] = useState([]);
 
-  const showToast = (message, type = "success") => {
-    setToast({ id: Date.now(), message, type });
+  const showToast = (message, type = "success", duration = 5000) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev.slice(-4), { id, message, type, duration }]);
   };
-  const hideToast = () => setToast(null);
+  const dismissToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
+  const hideToast = () => setToasts([]);
 
   const [isClaimSheetOpen, setIsClaimSheetOpen] = useState(false);
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
@@ -186,10 +188,18 @@ export function AppProvider({ children }) {
           const mapped = list.map((n) => ({
             _id: n._id,
             id: n._id || n.id,
-            title: n.title || "",
-            message: n.message || "",
-            date: n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
-            read: n.isRead || false,
+            title: n.title || "Notification",
+            // map both fields so the panel renders them correctly
+            body: n.message || n.body || "",
+            message: n.message || n.body || "",
+            time: n.createdAt
+              ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : n.time || "Just now",
+            date: n.createdAt
+              ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : n.date || "Just now",
+            read: n.isRead ?? n.read ?? false,
+            type: n.type || "claim",
             claimId: n.claimId || null,
           }));
           setNotifications(mapped);
@@ -586,8 +596,9 @@ export function AppProvider({ children }) {
     notifications,
     loading,
     transitioningId,
-    toast,
+    toasts,
     hideToast,
+    dismissToast,
     handleLogin,
     handleLogout,
     handleTransition,
