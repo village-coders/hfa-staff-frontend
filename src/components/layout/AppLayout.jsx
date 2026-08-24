@@ -5,13 +5,14 @@ import Topbar from "./Topbar";
 import { useApp } from "../../context/AppContext";
 import ClaimDetailsModal from "../claims/ClaimDetailsModal";
 import LoadingScreen from "../ui/LoadingScreen";
+import Toast from "../ui/Toast";
 
 export default function AppLayout() {
   const {
     loggedInUser, role, currentUser, claims, assets, users,
     notifications, handleLogout, handleMarkAllRead,
     selectedClaimForDetails, closeClaimDetails,
-    loading,
+    loading, toast, hideToast
   } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -21,6 +22,7 @@ export default function AppLayout() {
 
   return (
     <>
+      <Toast toast={toast} onClose={hideToast} />
       {loading && <LoadingScreen />}
     <div className="flex h-screen overflow-hidden bg-[#F8FAFC] font-sans antialiased text-slate-800">
       <Sidebar

@@ -28,6 +28,12 @@ export function AppProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [transitioningId, setTransitioningId] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ id: Date.now(), message, type });
+  };
+  const hideToast = () => setToast(null);
 
   const [isClaimSheetOpen, setIsClaimSheetOpen] = useState(false);
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
@@ -285,9 +291,23 @@ export function AppProvider({ children }) {
           }),
         });
       }
+      
+      const messages = {
+        verified: "Claim verified successfully! Sent to CEO for review.",
+        approved_for_payment: "Claim approved! Forwarded to Accountant for payment.",
+        further_approval: "Claim escalated to Board of Directors for approval.",
+        paid: "Claim marked as Paid successfully!",
+        pending: "Feedback note sent to user successfully.",
+        new: "Claim resubmitted successfully for review.",
+        rejected: "Claim rejected.",
+      };
+      const st = newStatus.toLowerCase();
+      showToast(messages[st] || `Claim updated to ${st}.`, st === "rejected" ? "info" : "success");
+
       if (!res.ok) console.error("Transition failed:", res.status);
     } catch (e) {
       console.error("Transition error:", e);
+      showToast("Error executing action. Please try again.", "error");
     } finally {
       setTransitioningId(null);
     }
@@ -297,6 +317,7 @@ export function AppProvider({ children }) {
     const claimObj = claims.find((c) => c.id === id || c._id === id);
     const dbId = claimObj?._id || id;
     setClaims((prev) => prev.filter((c) => c.id !== id));
+    showToast("Claim record deleted.", "info");
     try {
       await fetch(`${API_BASE_URL}/claims/${dbId}`, {
         method: "DELETE",
@@ -339,14 +360,17 @@ export function AppProvider({ children }) {
           note: serverClaim.officerNote || "",
         };
         setClaims((prev) => [mappedClaim, ...prev]);
+        showToast("Claim created and submitted successfully!", "success");
         return { success: true };
       } else {
         const errData = await res.json().catch(() => ({}));
         console.error("Failed to submit claim:", res.status, errData);
+        showToast(errData.message || "Failed to submit claim.", "error");
         return { success: false, message: errData.message || `Server error: ${res.status}` };
       }
     } catch (e) {
       console.error("Submit claim error:", e);
+      showToast("Network error. Please try again.", "error");
       return { success: false, message: "Network error. Please check your connection and try again." };
     }
   };
@@ -388,14 +412,17 @@ export function AppProvider({ children }) {
           sellerVendor: serverAsset.sellerVendor || "",
         };
         setAssets((prev) => [mappedAsset, ...prev]);
+        showToast("New asset registered successfully!", "success");
         return { success: true };
       } else {
         const errData = await res.json().catch(() => ({}));
         console.error("Failed to register asset:", res.status, errData);
+        showToast(errData.message || "Failed to register asset.", "error");
         return { success: false, message: errData.message || `Server error: ${res.status}` };
       }
     } catch (e) {
       console.error("Add asset error:", e);
+      showToast("Network error. Please try again.", "error");
       return { success: false, message: "Network error. Please check your connection and try again." };
     }
   };
@@ -428,12 +455,15 @@ export function AppProvider({ children }) {
             role: serverUser.role || u.role,
           },
         ]);
+        showToast("User account created successfully!", "success");
       } else {
         const errData = await res.json().catch(() => ({}));
         console.error("Failed to create user:", errData.message || res.status);
+        showToast(errData.message || "Failed to create user account.", "error");
       }
     } catch (e) {
       console.error("Add user error:", e);
+      showToast("Network error. Please try again.", "error");
     }
   };
 
@@ -441,6 +471,7 @@ export function AppProvider({ children }) {
     setUsers((prev) =>
       prev.map((u) => (u.username === updatedUser.username ? { ...u, ...updatedUser } : u))
     );
+    showToast("User details updated successfully!", "success");
     try {
       const dbId = updatedUser._id || updatedUser.username;
       if (!dbId) { console.warn("No identifier to update user."); return; }
@@ -470,6 +501,7 @@ export function AppProvider({ children }) {
     const userObj = users.find((u) => u.username === username);
     const dbId = userObj?._id;
     setUsers((prev) => prev.filter((u) => u.username !== username));
+    showToast("User account deleted.", "info");
     try {
       if (!dbId) { console.warn("No _id for user:", username); return; }
       const res = await fetch(`${API_BASE_URL}/users/${dbId}`, {
@@ -533,6 +565,7 @@ export function AppProvider({ children }) {
     const assetObj = assets.find((a) => a.id === id || a._id === id);
     const dbId = assetObj?._id || id;
     setAssets((prev) => prev.filter((a) => a.id !== id && a._id !== id));
+    showToast("Asset record deleted.", "info");
     try {
       await fetch(`${API_BASE_URL}/assets/${dbId}`, {
         method: "DELETE",
@@ -553,6 +586,8 @@ export function AppProvider({ children }) {
     notifications,
     loading,
     transitioningId,
+    toast,
+    hideToast,
     handleLogin,
     handleLogout,
     handleTransition,
