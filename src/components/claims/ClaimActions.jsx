@@ -72,8 +72,8 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmLabel: "Verify Claim",
           confirmVariant: "primary",
           withNote: true,
-          noteRequired: true,
-          notePlaceholder: "Add note for CEO review (e.g. Invoices verified, expenses within policy)...",
+          noteRequired: false,
+          notePlaceholder: "Add optional note for CEO review (e.g. Invoices verified, expenses within policy)...",
           noteLabel: "Note for CEO Review",
           onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
         }),
@@ -94,7 +94,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmLabel: "Reject Claim",
           confirmVariant: "danger",
           withNote: true,
-          noteRequired: true,
+          noteRequired: false,
           notePlaceholder: "Reason for claim rejection...",
           noteLabel: "Rejection Reason",
           onConfirm: (note) => onTransition(claim.id, "rejected", note, "user"),
@@ -113,7 +113,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmLabel: "Send to Accountant",
           confirmVariant: "primary",
           withNote: true,
-          noteRequired: true,
+          noteRequired: false,
           notePlaceholder: "Payment disbursement instructions for Accountant...",
           noteLabel: "Note for Accountant",
           onConfirm: (note) => onTransition(claim.id, "approved_for_payment", note, "accountant"),
@@ -129,7 +129,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmLabel: "Send to Board",
           confirmVariant: "warning",
           withNote: true,
-          noteRequired: true,
+          noteRequired: false,
           notePlaceholder: "Justification for Board approval...",
           noteLabel: "Note for Board Review",
           onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
@@ -145,7 +145,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmLabel: "Return Claim",
           confirmVariant: "warning",
           withNote: true,
-          noteRequired: true,
+          noteRequired: false,
           notePlaceholder: "Instructions / reason for return to Financial Officer...",
           noteLabel: "Return Reason / Note",
           onConfirm: (note) => onTransition(claim.id, "pending", note, "financial_officer"),
@@ -164,7 +164,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmLabel: "Approve Claim",
           confirmVariant: "primary",
           withNote: true,
-          noteRequired: true,
+          noteRequired: false,
           notePlaceholder: "Board resolution / approval note for CEO...",
           noteLabel: "Board Note for CEO",
           onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
@@ -180,7 +180,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmLabel: "Reject Claim",
           confirmVariant: "danger",
           withNote: true,
-          noteRequired: true,
+          noteRequired: false,
           notePlaceholder: "Reason for claim rejection...",
           noteLabel: "Rejection Reason",
           onConfirm: (note) => onTransition(claim.id, "rejected", note, "user"),
@@ -199,7 +199,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmLabel: "Mark as Paid",
           confirmVariant: "primary",
           withNote: true,
-          noteRequired: true,
+          noteRequired: false,
           notePlaceholder: "Transaction reference / payment settlement note...",
           noteLabel: "Payment Reference / Note",
           onConfirm: (note) => onTransition(claim.id, "paid", note, "user"),
@@ -218,7 +218,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmLabel: "Resubmit",
           confirmVariant: "primary",
           withNote: true,
-          noteRequired: true,
+          noteRequired: false,
           notePlaceholder: "Summary of updates / responses to feedback...",
           noteLabel: "Resubmission Note",
           onConfirm: (note) => onTransition(claim.id, "new", note, "financial_officer"),
@@ -292,6 +292,10 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           message={pendingConfirm.message}
           confirmLabel={pendingConfirm.confirmLabel}
           confirmVariant={pendingConfirm.confirmVariant}
+          withNote={pendingConfirm.withNote ?? true}
+          notePlaceholder={pendingConfirm.notePlaceholder}
+          noteLabel={pendingConfirm.noteLabel}
+          noteRequired={pendingConfirm.noteRequired ?? false}
           onConfirm={pendingConfirm.onConfirm}
           onClose={() => setPendingConfirm(null)}
         />
