@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
   FileEdit, Clock3, XCircle, CheckCircle2, FilePlus2, BadgeCheck,
@@ -208,24 +209,37 @@ export default function DashboardPage() {
       )}
 
       {/* Feedback Modal */}
-      {feedbackClaim && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl border border-slate-200 animate-scale-in">
-            <h3 className="font-bold text-sm text-slate-900 mb-1">Send Feedback</h3>
-            <p className="text-xs text-slate-500 mb-4">To {feedbackClaim.claimant} regarding {feedbackClaim.id}.</p>
+      {feedbackClaim && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-in my-auto">
+            <h3 className="font-extrabold text-base text-slate-900 mb-1">Send Feedback</h3>
+            <p className="text-xs text-slate-500 font-medium mb-4">To {feedbackClaim.claimant || feedbackClaim.claimantName} regarding {feedbackClaim.id}.</p>
             <textarea
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               rows={4}
               placeholder="e.g. Please attach a valid receipt..."
-              className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none mb-4 font-medium focus:border-teal-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none mb-4 focus:border-teal-500 focus:bg-white transition-all resize-none"
             />
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setFeedbackClaim(null)} className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600">Cancel</button>
-              <button onClick={submitFeedback} className="px-4 py-2 text-xs font-semibold rounded-xl text-white bg-teal-600 hover:bg-teal-700">Send Feedback</button>
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setFeedbackClaim(null)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitFeedback}
+                className="px-5 py-2 text-xs font-bold rounded-xl text-white bg-teal-600 hover:bg-teal-700 shadow-md transition-colors cursor-pointer"
+              >
+                Send Feedback
+              </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -80,12 +80,14 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
         { color: T.tealLight }
       )
     );
-    buttons.push(
-      btn("Send Feedback", () => {
-        setOpen(false);
-        onOpenFeedback(claim);
-      }, { color: T.gray700 })
-    );
+    if (currentStatus === "new") {
+      buttons.push(
+        btn("Send Feedback", () => {
+          setOpen(false);
+          onOpenFeedback(claim);
+        }, { color: T.gray700 })
+      );
+    }
     buttons.push(
       btn("Reject", () =>
         requestConfirmation({
