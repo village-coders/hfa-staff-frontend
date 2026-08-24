@@ -19,6 +19,9 @@ export function AppProvider({ children }) {
     }
   });
 
+  const role = loggedInUser?.role || "user";
+  const currentUser = loggedInUser?.name || loggedInUser?.username || "";
+
   const [claims, setClaims] = useState([]);
   const [assets, setAssets] = useState([]);
   const [users, setUsers] = useState([]);
@@ -542,8 +545,8 @@ export function AppProvider({ children }) {
 
   const value = {
     loggedInUser,
-    role: loggedInUser?.role || "user",
-    currentUser: loggedInUser?.name || loggedInUser?.username || "",
+    role,
+    currentUser,
     claims,
     assets,
     users,
