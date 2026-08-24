@@ -200,8 +200,8 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmVariant: "primary",
           withNote: true,
           noteRequired: false,
-          notePlaceholder: "Transaction reference / payment settlement note...",
-          noteLabel: "Payment Reference / Note",
+          notePlaceholder: "Note...",
+          noteLabel: "Note",
           onConfirm: (note) => onTransition(claim.id, "paid", note, "user"),
         }),
         { color: T.tealLight }
@@ -219,8 +219,8 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
           confirmVariant: "primary",
           withNote: true,
           noteRequired: false,
-          notePlaceholder: "Summary of updates / responses to feedback...",
-          noteLabel: "Resubmission Note",
+          notePlaceholder: "Note...",
+          noteLabel: "Note",
           onConfirm: (note) => onTransition(claim.id, "new", note, "financial_officer"),
         }),
         { color: T.tealLight }
