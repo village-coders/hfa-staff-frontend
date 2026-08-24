@@ -347,9 +347,6 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                     <MessageSquare size={14} className="text-amber-700" />
                     <span>Action & Transition Notes</span>
                   </h4>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-200/60 text-amber-900 flex items-center gap-1">
-                    <Lock size={10} /> Confidential (Target Role & Super Admin only)
-                  </span>
                 </div>
 
                 <div className="space-y-2">

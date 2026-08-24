@@ -141,14 +141,14 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
       btn("Reverse to Fin. Officer", () =>
         requestConfirmation({
           title: "Return Claim to Financial Officer",
-          message: `Are you sure you want to return claim ${refNo} to the Financial Officer for re-evaluation?`,
-          confirmLabel: "Return Claim",
+          message: `Are you sure you want to return claim ${refNo} to the Financial Officer? It will move back to the New Claims list for re-evaluation.`,
+          confirmLabel: "Reverse to Fin. Officer",
           confirmVariant: "warning",
           withNote: true,
           noteRequired: false,
           notePlaceholder: "Instructions / reason for return to Financial Officer...",
           noteLabel: "Return Reason / Note",
-          onConfirm: (note) => onTransition(claim.id, "pending", note, "financial_officer"),
+          onConfirm: (note) => onTransition(claim.id, "new", note, "financial_officer"),
         }),
         { color: "#B45309" }
       )
@@ -209,12 +209,12 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     );
   }
 
-  if (currentStatus === "pending" && (role === "user" || role === "admin" || role === "super_admin")) {
+  if (currentStatus === "pending" && (role === "user" || role === "financial_officer" || role === "admin" || role === "super_admin")) {
     buttons.push(
       btn("Resubmit Claim", () =>
         requestConfirmation({
           title: "Resubmit Expense Claim",
-          message: `Are you sure you want to resubmit claim ${refNo} for review?`,
+          message: `Are you sure you want to resubmit claim ${refNo}? It will move to the New Claims list for review.`,
           confirmLabel: "Resubmit",
           confirmVariant: "primary",
           withNote: true,
