@@ -92,7 +92,7 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
   const [assetOpen, setAssetOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { openClaimSheet, openAddAsset } = useApp();
+  const { openClaimSheet, openAddAsset, currentUser } = useApp();
 
   const handleItemClick = (key) => {
     navigate(VIEW_TO_PATH[key] || "/dashboard");
@@ -106,9 +106,8 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
 
   // Sidebar badge counts
   const claimCounts = (() => {
-    const currentUser = users.find((u) => u.role === role)?.name || "";
     const isTotalViewer = role === "admin" || role === "financial_officer";
-    const list = isTotalViewer ? claims : claims.filter((c) => c.claimant === currentUser);
+    const list = isTotalViewer ? claims : claims.filter((c) => c.claimant === currentUser || c.claimantName === currentUser);
     const counts = {
       "manage-claim-sheet": null,
       "all-claims-list": isTotalViewer ? claims.length : list.length,

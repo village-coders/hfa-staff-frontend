@@ -79,9 +79,9 @@ export function AppProvider({ children }) {
     async function fetchAll() {
       setLoading(true);
 
-      // Helper: if any endpoint returns 401/403 the token is stale — log out
+      // Helper: if token is invalid (401), clear session. 403 (permission denied) simply returns false without logging out.
       const checkAuth = (res) => {
-        if (res.status === 401 || res.status === 403) {
+        if (res.status === 401) {
           localStorage.removeItem("ifrs_user");
           localStorage.removeItem("token");
           setLoggedInUser(null);

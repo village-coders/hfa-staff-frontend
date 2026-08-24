@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
@@ -21,6 +21,11 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
 
   const [step, setStep] = useState(1);
   const [claimantName, setClaimantName] = useState(currentUser || "");
+  useEffect(() => {
+    if (!claimantName && currentUser) {
+      setClaimantName(currentUser);
+    }
+  }, [currentUser]);
   const [claimRefNo] = useState("MDOS-" + Math.floor(10000000000000 + Math.random() * 90000000000000));
   const [claimType, setClaimType] = useState("Staff Expense");
   const [companyName, setCompanyName] = useState("Halal Food Authority");

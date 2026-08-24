@@ -23,7 +23,7 @@ export default function DashboardPage() {
     const c = {};
     Object.keys(STATUS).forEach((k) => (c[k] = claims.filter((x) => x.status === k).length));
     c.total = claims.length;
-    c.mine = claims.filter((x) => x.claimant === currentUser).length;
+    c.mine = claims.filter((x) => x.claimant === currentUser || x.claimantName === currentUser).length;
     return c;
   }, [claims, currentUser]);
 
@@ -31,9 +31,9 @@ export default function DashboardPage() {
   if (role === "user") {
     cards = [
       { label: "My Claims", value: counts.mine, icon: FileEdit, accent: "#007A87", targetView: "all-claims-list" },
-      { label: "Pending Feedback", value: claims.filter((c) => c.claimant === currentUser && c.status === "pending").length, icon: Clock3, accent: "#B45309", targetView: "pending-claim-list" },
-      { label: "Rejected", value: claims.filter((c) => c.claimant === currentUser && c.status === "rejected").length, icon: XCircle, accent: "#B91C1C", targetView: "rejected-claim-list" },
-      { label: "Paid To Date", value: claims.filter((c) => c.claimant === currentUser && c.status === "paid").length, icon: CheckCircle2, accent: "#15803D", targetView: "all-claims-list" },
+      { label: "Pending Feedback", value: claims.filter((c) => (c.claimant === currentUser || c.claimantName === currentUser) && c.status === "pending").length, icon: Clock3, accent: "#B45309", targetView: "pending-claim-list" },
+      { label: "Rejected", value: claims.filter((c) => (c.claimant === currentUser || c.claimantName === currentUser) && c.status === "rejected").length, icon: XCircle, accent: "#B91C1C", targetView: "rejected-claim-list" },
+      { label: "Paid To Date", value: claims.filter((c) => (c.claimant === currentUser || c.claimantName === currentUser) && c.status === "paid").length, icon: CheckCircle2, accent: "#15803D", targetView: "all-claims-list" },
     ];
   } else if (role === "financial_officer") {
     cards = [
@@ -75,7 +75,7 @@ export default function DashboardPage() {
 
   const recent = (
     role === "user"
-      ? claims.filter((c) => c.claimant === currentUser)
+      ? claims.filter((c) => c.claimant === currentUser || c.claimantName === currentUser)
       : role === "ceo"
       ? claims.filter((c) => c.status === "verified")
       : role === "chairman"
