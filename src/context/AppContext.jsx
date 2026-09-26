@@ -102,7 +102,7 @@ export function AppProvider({ children }) {
       };
 
       try {
-        const claimsRes = await fetch(`${API_BASE_URL}/claims`, { headers });
+        const claimsRes = await fetch(`${API_BASE_URL}/claims?limit=1000`, { headers });
         if (checkAuth(claimsRes)) {
           const d = await claimsRes.json();
           const list = extractList(d);
@@ -316,9 +316,31 @@ export function AppProvider({ children }) {
         rejected: "Claim rejected.",
       };
       const st = newStatus.toLowerCase();
-      showToast(messages[st] || `Claim updated to ${st}.`, st === "rejected" || st === "further_approval_rejected" ? "info" : "success");
 
-      if (!res.ok) console.error("Transition failed:", res.status);
+      if (res.ok) {
+        const json = await res.json().catch(() => null);
+        if (json?.data) {
+          const updated = json.data;
+          setClaims((prev) =>
+            prev.map((c) => {
+              if (c.id === id || c._id === id || c.id === updated.claimRefNo || c._id === updated._id) {
+                return {
+                  ...c,
+                  status: (updated.status || newStatus).toLowerCase() === "new" ? "submitted" : (updated.status || newStatus).toLowerCase(),
+                  note: updated.officerNote || note || c.note,
+                  history: Array.isArray(updated.history) ? updated.history : c.history,
+                };
+              }
+              return c;
+            })
+          );
+        }
+        showToast(messages[st] || `Claim updated to ${st}.`, st === "rejected" || st === "further_approval_rejected" ? "info" : "success");
+      } else {
+        const errJson = await res.json().catch(() => null);
+        console.error("Transition failed:", res.status, errJson);
+        showToast(errJson?.message || "Failed to update claim status.", "error");
+      }
     } catch (e) {
       console.error("Transition error:", e);
       showToast("Error executing action. Please try again.", "error");

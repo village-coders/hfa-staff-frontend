@@ -29,11 +29,11 @@ export default function LoginPage() {
 
       if (res.ok) {
         const data = await res.json();
-        const userObj = data.user || data.data?.user || {};
+        const userObj = data.user || data.data?.user || (data.data && typeof data.data === "object" && !data.data.user ? data.data : {});
         const mappedUser = {
           name: userObj.fullName || userObj.name || data.data?.name || username,
-          role: userObj.role || data.data?.role || "user",
-          username: userObj.username || username,
+          role: (userObj.role || data.data?.role || "user").toLowerCase().trim(),
+          username: userObj.username || data.data?.username || username,
           token: data.accessToken || data.token || data.data?.token || data.data?.accessToken,
           id: userObj.id || userObj._id || data.data?.id || data.data?._id,
         };
