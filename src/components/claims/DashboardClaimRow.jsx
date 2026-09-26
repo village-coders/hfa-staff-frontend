@@ -65,8 +65,8 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
       <td className="px-5 py-4 text-slate-600">{claim.dept || "Operations"}</td>
       <td className="px-5 py-4 font-semibold text-slate-900">{fmtN(claim.amount || 0)}</td>
       <td className="px-5 py-4 text-slate-500">{claim.date || "N/A"}</td>
-      <td className="px-5 py-4"><StatusBadge status={claim.status || "new"} /></td>
-      <td className="px-5 py-4 text-center">
+      <td className="px-3 py-4"><StatusBadge status={claim.status || "new"} /></td>
+      <td className="px-3 py-4 text-center">
         <div className="relative inline-block text-left" ref={ref}>
           {transitioningId && transitioningId.startsWith(`${claim.id}-`) ? (
             <div className="w-8 h-8 flex items-center justify-center">

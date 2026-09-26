@@ -138,13 +138,13 @@ export default function ClaimsPage() {
               <table className="w-full text-xs whitespace-nowrap">
                 <thead>
                   <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                    <th className="text-left px-5 py-3">Claim ID</th>
+                    <th className="text-left px-5 py-3 w-36">Claim ID</th>
                     <th className="text-left px-5 py-3">Claimant</th>
                     <th className="text-left px-5 py-3">Title</th>
-                    <th className="text-left px-5 py-3">Amount</th>
-                    <th className="text-left px-5 py-3">Date</th>
-                    <th className="text-left px-5 py-3">Status</th>
-                    <th className="text-left px-5 py-3">Action</th>
+                    <th className="text-left px-5 py-3 w-28">Amount</th>
+                    <th className="text-left px-5 py-3 w-28">Date</th>
+                    <th className="text-left px-3 py-3 w-32">Status</th>
+                    <th className="text-center px-3 py-3 w-16">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -152,11 +152,11 @@ export default function ClaimsPage() {
                     <tr key={c.id || c._id || idx} className="hover:bg-slate-50 transition-colors">
                       <td className="px-5 py-3.5 font-semibold text-teal-800 whitespace-nowrap">{c.id || c.claimRefNo || c._id}</td>
                       <td className="px-5 py-3.5 font-medium text-slate-900 whitespace-nowrap">{c.claimant || c.claimantName || "User"}</td>
-                      <td className="px-5 py-3.5 text-slate-700">{c.title || "General Expense Claim"}</td>
+                      <td className="px-5 py-3.5 text-slate-700 max-w-[180px] truncate" title={c.title}>{c.title || "General Expense Claim"}</td>
                       <td className="px-5 py-3.5 font-semibold text-slate-900 whitespace-nowrap">{fmtN(c.amount || 0)}</td>
                       <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">{c.date || "N/A"}</td>
-                      <td className="px-5 py-3.5"><StatusBadge status={c.status || "new"} /></td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-3 py-3.5"><StatusBadge status={c.status || "new"} /></td>
+                      <td className="px-3 py-3.5 text-center">
                         <ClaimActions
                           claim={c}
                           view={viewKey}

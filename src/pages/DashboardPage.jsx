@@ -177,8 +177,8 @@ export default function DashboardPage() {
                 <th className="text-left px-5 py-3.5 whitespace-nowrap">Department</th>
                 <th className="text-left px-5 py-3.5 whitespace-nowrap">Amount</th>
                 <th className="text-left px-5 py-3.5 whitespace-nowrap">Date</th>
-                <th className="text-left px-5 py-3.5 whitespace-nowrap">Status</th>
-                <th className="text-center px-5 py-3.5 w-20 whitespace-nowrap">Action</th>
+                <th className="text-left px-3 py-3.5 w-32 whitespace-nowrap">Status</th>
+                <th className="text-center px-3 py-3.5 w-16 whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
