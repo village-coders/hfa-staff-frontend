@@ -1,17 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import {
   X, FileText, Calendar, Building, User,
   Tag, FileCheck2, Info, Paperclip, CreditCard, Wallet, Percent, DollarSign,
-  MessageSquare, Lock, Shield
+  MessageSquare, Lock, Shield, CheckCircle2, RotateCcw, XCircle
 } from "lucide-react";
 import StatusBadge from "../ui/StatusBadge";
-import { fmtN } from "../../constants/theme";
+import ConfirmModal from "../ui/ConfirmModal";
+import { fmtN, T } from "../../constants/theme";
 import { useApp } from "../../context/AppContext";
 
 export default function ClaimDetailsModal({ claim, onClose }) {
-  const { role, currentUser } = useApp();
+  const { role, currentUser, handleTransition, transitioningId } = useApp();
+  const [pendingConfirm, setPendingConfirm] = useState(null);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+
   if (!claim) return null;
+
+  const currentStatus = (claim.status || "").toLowerCase();
+  const refNo = claim.id || claim.claimRefNo || "Claim";
+
+  const isFO = role === "financial_officer" || role === "admin" || role === "super_admin";
+  const isCEO = role === "ceo" || role === "admin" || role === "super_admin";
+  const isChairman = role === "chairman" || role === "admin" || role === "super_admin";
+  const isAccountant = role === "accountant" || role === "admin" || role === "super_admin";
 
   const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€" };
   const fmtCurrency = (val, symbol = "£") =>
@@ -154,17 +167,37 @@ export default function ClaimDetailsModal({ claim, onClose }) {
             const verifiedEntry = history.find(
               (h) => (h.toStatus || "").toLowerCase() === "verified"
             );
-            const approvedEntry = history.find(
-              (h) => (h.toStatus || "").toLowerCase() === "further_approval" || (h.toStatus || "").toLowerCase() === "approved"
-            );
+
+            // Check if further approval action was taken on this claim
+            const hadFurtherApproval = history.some((h) => {
+              const toSt = (h.toStatus || "").toLowerCase();
+              const fromSt = (h.fromStatus || "").toLowerCase();
+              const aRole = (h.actorRole || "").toLowerCase();
+              return (
+                toSt === "further_approval_approved" ||
+                toSt === "further_approval" ||
+                fromSt === "further_approval" ||
+                aRole === "chairman"
+              );
+            }) || (claim.status || "").toLowerCase().includes("further_approval") || Boolean(claim.furtherApprovedBy);
+
+            const furtherApprovedEntry = history.find((h) => {
+              const toSt = (h.toStatus || "").toLowerCase();
+              const aRole = (h.actorRole || "").toLowerCase();
+              return toSt === "further_approval_approved" || toSt === "further_approval" || aRole === "chairman";
+            });
+
             const approvedPaymentEntry = history.find(
               (h) => (h.toStatus || "").toLowerCase() === "approved_for_payment"
             );
             const paidEntry = history.find(
               (h) => (h.toStatus || "").toLowerCase() === "paid"
             );
+            const standardApprovedEntry = history.find(
+              (h) => (h.toStatus || "").toLowerCase() === "approved" || (h.toStatus || "").toLowerCase() === "approved_for_payment"
+            );
 
-            const isPastVerified = claim.status && claim.status.toLowerCase() !== "new" && claim.status.toLowerCase() !== "pending";
+            const isPastVerified = claim.status && claim.status.toLowerCase() !== "new" && claim.status.toLowerCase() !== "submitted" && claim.status.toLowerCase() !== "pending";
 
             const verifierName = verifiedEntry?.actorName || claim.verifiedBy || (isPastVerified ? "Jaweria" : "");
             const verifierDate = verifiedEntry?.timestamp ? fmtAuditDate(verifiedEntry.timestamp) : (isPastVerified ? (claim.date ? fmtAuditDate(claim.date) : "11-Aug-2026") : "");
@@ -174,21 +207,31 @@ export default function ClaimDetailsModal({ claim, onClose }) {
             const appPaymentDate = approvedPaymentEntry?.timestamp ? fmtAuditDate(approvedPaymentEntry.timestamp) : "";
             const approvedForPaymentText = appPaymentName ? `${appPaymentName} (Date: ${appPaymentDate})` : "(Date: )";
 
-            const appName = approvedEntry?.actorName || claim.approvedBy || "";
-            const appDate = approvedEntry?.timestamp ? fmtAuditDate(approvedEntry.timestamp) : "";
+            // If further approval action was taken, populate further approved information
+            const furtherApproverName = furtherApprovedEntry?.actorName || claim.furtherApprovedBy || (hadFurtherApproval ? (standardApprovedEntry?.actorName || claim.approvedBy) : "");
+            const furtherApproverDate = furtherApprovedEntry?.timestamp ? fmtAuditDate(furtherApprovedEntry.timestamp) : "";
+            const furtherApprovedText = furtherApproverName ? `${furtherApproverName} (Date: ${furtherApproverDate})` : "(Date: )";
+
+            const appName = standardApprovedEntry?.actorName || claim.approvedBy || "";
+            const appDate = standardApprovedEntry?.timestamp ? fmtAuditDate(standardApprovedEntry.timestamp) : "";
             const approvedText = appName ? `${appName} (Date: ${appDate})` : "(Date: )";
 
             const pName = paidEntry?.actorName || claim.paidBy || "";
             const pDate = paidEntry?.timestamp ? fmtAuditDate(paidEntry.timestamp) : "";
             const paidText = pName ? `${pName} (Date: ${pDate})` : "(Date: )";
 
-            const approvedDateText = appPaymentDate || appDate || (claim.approvedDate ? fmtAuditDate(claim.approvedDate) : "");
+            const approvedDateText = hadFurtherApproval
+              ? (furtherApproverDate || appPaymentDate || appDate || (claim.approvedDate ? fmtAuditDate(claim.approvedDate) : ""))
+              : (appPaymentDate || appDate || (claim.approvedDate ? fmtAuditDate(claim.approvedDate) : ""));
 
             const statusLabels = {
-              new: "New",
+              submitted: "Submitted",
+              new: "Submitted",
               pending: "Pending",
               verified: "Verified",
               further_approval: "Further Approval Required",
+              further_approval_approved: "Further Approval Approved",
+              further_approval_rejected: "Further Approval Rejected",
               approved_for_payment: "Approved For Payment",
               paid: "Paid",
               rejected: "Rejected"
@@ -203,7 +246,9 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                     <span className="font-bold text-slate-900">{formattedStatusText}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-700">Date Of Approved:</span>
+                    <span className="font-semibold text-slate-700">
+                      {hadFurtherApproval ? "Date Of Further Approved:" : "Date Of Approved:"}
+                    </span>
                     <span className="font-medium text-slate-900">{approvedDateText}</span>
                   </div>
                 </div>
@@ -218,8 +263,12 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                     <span className="font-medium text-slate-900">{approvedForPaymentText}</span>
                   </div>
                   <div>
-                    <span className="font-semibold text-slate-700">Approved By: </span>
-                    <span className="font-medium text-slate-900">{approvedText}</span>
+                    <span className="font-semibold text-slate-700">
+                      {hadFurtherApproval ? "Further Approved By: " : "Approved By: "}
+                    </span>
+                    <span className="font-medium text-slate-900">
+                      {hadFurtherApproval ? furtherApprovedText : approvedText}
+                    </span>
                   </div>
                   <div>
                     <span className="font-semibold text-slate-700">Paid By: </span>
@@ -462,16 +511,335 @@ export default function ClaimDetailsModal({ claim, onClose }) {
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3 flex-shrink-0">
+        {/* Modal Footer with Workflow Actions */}
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Financial Officer actions */}
+            {(currentStatus === "submitted" || currentStatus === "new" || currentStatus === "pending") && isFO && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Verify Claim",
+                      message: `Are you sure you want to verify claim ${refNo}? This will forward it to the CEO for review.`,
+                      confirmLabel: "Verify Claim",
+                      confirmVariant: "primary",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Add optional note for CEO review...",
+                      noteLabel: "Note for CEO Review",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "verified", note, "ceo");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 size={14} /> Verify
+                </button>
+                {(currentStatus === "submitted" || currentStatus === "new") && (
+                  <button
+                    type="button"
+                    onClick={() => setFeedbackModalOpen(true)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <MessageSquare size={14} /> Send to Pending
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Reject Claim",
+                      message: `Are you sure you want to reject claim ${refNo}? The claimant will be notified.`,
+                      confirmLabel: "Reject Claim",
+                      confirmVariant: "danger",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Reason for claim rejection...",
+                      noteLabel: "Rejection Reason",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "rejected", note, "user");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <XCircle size={14} /> Reject
+                </button>
+              </>
+            )}
+
+            {/* CEO actions */}
+            {(currentStatus === "verified" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && isCEO && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Approve for Payment",
+                      message: `Are you sure you want to approve claim ${refNo} for payment? This will forward it to the Accountant for disbursement.`,
+                      confirmLabel: "Approve for Payment",
+                      confirmVariant: "primary",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Payment disbursement instructions for Accountant...",
+                      noteLabel: "Note for Accountant",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "approved_for_payment", note, "accountant");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 size={14} /> Approve for Payment
+                </button>
+
+                {(currentStatus === "verified" || currentStatus === "further_approval_rejected") && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPendingConfirm({
+                        title: "Send for Further Approval",
+                        message: `Are you sure you want to send claim ${refNo} to the Board of Directors for further approval?`,
+                        confirmLabel: "Send for Further Approval",
+                        confirmVariant: "warning",
+                        withNote: true,
+                        noteRequired: false,
+                        notePlaceholder: "Justification for Board approval...",
+                        noteLabel: "Note for Board Review",
+                        onConfirm: async (note) => {
+                          await handleTransition(claim.id, "further_approval", note, "chairman");
+                          if (onClose) onClose();
+                        },
+                      })
+                    }
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-purple-900 bg-purple-100 hover:bg-purple-200 border border-purple-300 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Building size={14} /> Send for Further Approval
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Return Claim to Financial Officer",
+                      message: `Are you sure you want to return claim ${refNo} to the Financial Officer? It will move back to the Submitted Claims list for re-evaluation.`,
+                      confirmLabel: "Reverse to Fin. Officer",
+                      confirmVariant: "warning",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Instructions / reason for return to Financial Officer...",
+                      noteLabel: "Return Reason / Note",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "submitted", note, "financial_officer");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <RotateCcw size={14} /> Reverse to Fin. Officer
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Reject Claim",
+                      message: `Are you sure you want to reject claim ${refNo}?`,
+                      confirmLabel: "Reject Claim",
+                      confirmVariant: "danger",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Reason for claim rejection...",
+                      noteLabel: "Rejection Reason",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "rejected", note, "user");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <XCircle size={14} /> Reject
+                </button>
+              </>
+            )}
+
+            {/* Board / Chairman actions */}
+            {currentStatus === "further_approval" && isChairman && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Further Approval - Approve",
+                      message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO for payment authorization.`,
+                      confirmLabel: "Approve Claim",
+                      confirmVariant: "primary",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Board resolution / approval note for CEO...",
+                      noteLabel: "Board Note for CEO",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "further_approval_approved", note, "ceo");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 size={14} /> Approve — Return to CEO
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Further Approval - Reject",
+                      message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
+                      confirmLabel: "Reject — Return to CEO",
+                      confirmVariant: "danger",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Reason for Board rejection...",
+                      noteLabel: "Rejection Reason for CEO",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "further_approval_rejected", note, "ceo");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <XCircle size={14} /> Reject — Return to CEO
+                </button>
+              </>
+            )}
+
+            {/* Accountant actions */}
+            {currentStatus === "approved_for_payment" && isAccountant && (
+              <button
+                type="button"
+                onClick={() =>
+                  setPendingConfirm({
+                    title: "Confirm Payment Disbursed",
+                    message: `Are you sure you want to mark claim ${refNo} as Paid?`,
+                    confirmLabel: "Mark as Paid",
+                    confirmVariant: "primary",
+                    withNote: true,
+                    noteRequired: false,
+                    notePlaceholder: "Payment transaction reference...",
+                    noteLabel: "Payment Reference / Note",
+                    onConfirm: async (note) => {
+                      await handleTransition(claim.id, "paid", note, "user");
+                      if (onClose) onClose();
+                    },
+                  })
+                }
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <CheckCircle2 size={14} /> Mark as Paid
+              </button>
+            )}
+
+            {/* User / Staff resubmit */}
+            {currentStatus === "pending" && (role === "user" || isFO) && (
+              <button
+                type="button"
+                onClick={() =>
+                  setPendingConfirm({
+                    title: "Resubmit Expense Claim",
+                    message: `Are you sure you want to resubmit claim ${refNo}? It will move to the Submitted Claims list for review.`,
+                    confirmLabel: "Resubmit",
+                    confirmVariant: "primary",
+                    withNote: true,
+                    noteRequired: false,
+                    notePlaceholder: "Summary of changes / response to feedback...",
+                    noteLabel: "Resubmission Note",
+                    onConfirm: async (note) => {
+                      await handleTransition(claim.id, "submitted", note, "financial_officer");
+                      if (onClose) onClose();
+                    },
+                  })
+                }
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <RotateCcw size={14} /> Resubmit Claim
+              </button>
+            )}
+          </div>
+
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#007A87] to-[#054D66] hover:from-[#006670] hover:to-[#043D52] shadow-md transition-all cursor-pointer"
+            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#007A87] to-[#054D66] hover:from-[#006670] hover:to-[#043D52] shadow-md transition-all cursor-pointer ml-auto"
           >
             Close Details
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {pendingConfirm && (
+        <ConfirmModal
+          isOpen={true}
+          title={pendingConfirm.title}
+          message={pendingConfirm.message}
+          confirmLabel={pendingConfirm.confirmLabel}
+          confirmVariant={pendingConfirm.confirmVariant}
+          withNote={pendingConfirm.withNote ?? true}
+          notePlaceholder={pendingConfirm.notePlaceholder}
+          noteLabel={pendingConfirm.noteLabel}
+          noteRequired={pendingConfirm.noteRequired ?? false}
+          onConfirm={pendingConfirm.onConfirm}
+          onClose={() => setPendingConfirm(null)}
+        />
+      )}
+
+      {/* Send Feedback / Move to Pending Modal */}
+      {feedbackModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-in my-auto">
+            <h3 className="font-extrabold text-base text-slate-900 mb-1">Send to Pending</h3>
+            <p className="text-xs text-slate-500 font-medium mb-4">
+              Send feedback note to {claim.claimant || claim.claimantName || "claimant"} regarding {refNo}.
+            </p>
+            <textarea
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              rows={4}
+              placeholder="e.g. Please attach a valid VAT invoice and resubmit..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none mb-4 focus:border-teal-500 focus:bg-white transition-all resize-none"
+            />
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setFeedbackModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleTransition(claim.id, "pending", feedbackText, "user");
+                  setFeedbackModalOpen(false);
+                  setFeedbackText("");
+                  if (onClose) onClose();
+                }}
+                className="px-4 py-2 text-xs font-semibold rounded-xl text-white bg-amber-600 hover:bg-amber-700 transition-colors cursor-pointer shadow-sm"
+              >
+                Confirm Send to Pending
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );

@@ -24,13 +24,16 @@ export const T = {
 export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://api.hfaportal.company/api/v1";
 
 export const STATUS = {
-  new:                   { label: "New",                   color: "#1D4ED8", bg: "#DBEAFE" },
-  pending:               { label: "Pending",                color: "#B45309", bg: "#FEF3C7" },
-  verified:              { label: "Verified",               color: "#4338CA", bg: "#E0E7FF" },
-  further_approval:      { label: "Further Approval",       color: "#7C3AED", bg: "#EDE9FE" },
-  approved_for_payment:  { label: "Approved For Payment",   color: "#0E7490", bg: "#CFFAFE" },
-  paid:                  { label: "Paid",                   color: "#15803D", bg: "#DCFCE7" },
-  rejected:              { label: "Rejected",               color: "#B91C1C", bg: "#FEE2E2" },
+  submitted:                  { label: "Submitted",                  color: "#1D4ED8", bg: "#DBEAFE" },
+  new:                        { label: "Submitted",                  color: "#1D4ED8", bg: "#DBEAFE" },
+  pending:                    { label: "Pending",                    color: "#B45309", bg: "#FEF3C7" },
+  verified:                   { label: "Verified",                   color: "#4338CA", bg: "#E0E7FF" },
+  further_approval:           { label: "Further Approval",           color: "#7C3AED", bg: "#EDE9FE" },
+  further_approval_approved:  { label: "Further Approval Approved",  color: "#059669", bg: "#D1FAE5" },
+  further_approval_rejected:  { label: "Further Approval Rejected",  color: "#DC2626", bg: "#FEE2E2" },
+  approved_for_payment:       { label: "Approved For Payment",       color: "#0E7490", bg: "#CFFAFE" },
+  paid:                       { label: "Paid",                       color: "#15803D", bg: "#DCFCE7" },
+  rejected:                   { label: "Rejected",                   color: "#B91C1C", bg: "#FEE2E2" },
 };
 
 export const fmtN = (n) => "£" + (Number(n) || 0).toLocaleString();

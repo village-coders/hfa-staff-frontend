@@ -20,7 +20,7 @@ export const ROLES = [
 export const CLAIM_ITEMS = [
   { key: "manage-claim-sheet", label: "New Claim", icon: FileEdit },
   { key: "all-claims-list", label: "Manage Claim List", icon: LayoutDashboard },
-  { key: "new-claim-list", label: "New Claim List", icon: FilePlus2, status: "new" },
+  { key: "new-claim-list", label: "Submitted Claim List", icon: FilePlus2, status: "submitted" },
   { key: "verified-list", label: "Verified List", icon: BadgeCheck, status: "verified" },
   { key: "approved-for-payment", label: "Approved For Payment", icon: CircleDollarSign, status: "approved_for_payment" },
   { key: "further-approval", label: "Further Approval", icon: Building, status: "further_approval" },
@@ -38,7 +38,7 @@ export const ASSET_ITEMS = [
 export const MENU_ACCESS = {
   user:              ["dashboard", "manage-claim-sheet", "all-claims-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "track-claim"],
   financial_officer: ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "track-claim"],
-  ceo:               ["dashboard", "verified-list", "track-claim"],
+  ceo:               ["dashboard", "all-claims-list", "verified-list", "further-approval", "track-claim"],
   accountant:        ["dashboard", "manage-claim-sheet", "all-claims-list", "approved-for-payment", "paid-list", "manage-asset", "track-claim"],
   admin:             ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "track-claim"],
   super_admin:       ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "users", "reports", "track-claim"],
@@ -49,7 +49,7 @@ export const VIEW_TITLES = {
   dashboard: "Dashboard",
   "manage-claim-sheet": "New Claim",
   "all-claims-list": "Manage Claim List",
-  "new-claim-list": "New Claim List",
+  "new-claim-list": "Submitted Claim List",
   "verified-list": "Verified List",
   "approved-for-payment": "Approved For Payment",
   "further-approval": "Further Approval",

@@ -20,10 +20,10 @@ export default function ClaimTrackingPage() {
     amount: 0,
     dept: "Operations",
     date: new Date().toISOString().slice(0, 10),
-    status: "new",
+    status: "submitted",
   };
 
-  const showBoard = claim.status === "further_approval";
+  const showBoard = ["further_approval", "further_approval_approved", "further_approval_rejected"].includes(claim.status);
 
   const steps = [
     {
@@ -32,7 +32,7 @@ export default function ClaimTrackingPage() {
       icon: FilePlus2,
       color: "#007A87",
       bg: "bg-teal-50", border: "border-teal-200", text: "text-teal-800",
-      passedStatuses: ["new", "pending", "verified", "further_approval", "approved_for_payment", "paid", "rejected"],
+      passedStatuses: ["new", "submitted", "pending", "verified", "further_approval", "further_approval_approved", "further_approval_rejected", "approved_for_payment", "paid", "rejected"],
       activeStatuses: [],
     },
     {
@@ -41,8 +41,8 @@ export default function ClaimTrackingPage() {
       icon: BadgeCheck,
       color: "#4338CA",
       bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-800",
-      passedStatuses: ["verified", "further_approval", "approved_for_payment", "paid"],
-      activeStatuses: ["new", "pending"],
+      passedStatuses: ["verified", "further_approval", "further_approval_approved", "further_approval_rejected", "approved_for_payment", "paid"],
+      activeStatuses: ["new", "submitted", "pending"],
     },
     {
       key: "ceo_review",
@@ -51,7 +51,7 @@ export default function ClaimTrackingPage() {
       color: "#0369A1",
       bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-800",
       passedStatuses: showBoard
-        ? ["further_approval", "approved_for_payment", "paid"]
+        ? ["further_approval", "further_approval_approved", "further_approval_rejected", "approved_for_payment", "paid"]
         : ["approved_for_payment", "paid"],
       activeStatuses: ["verified"],
     },
@@ -61,7 +61,7 @@ export default function ClaimTrackingPage() {
       icon: Building2,
       color: "#7C3AED",
       bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-800",
-      passedStatuses: ["approved_for_payment", "paid"],
+      passedStatuses: ["further_approval_approved", "further_approval_rejected", "approved_for_payment", "paid"],
       activeStatuses: ["further_approval"],
     }] : []),
     {

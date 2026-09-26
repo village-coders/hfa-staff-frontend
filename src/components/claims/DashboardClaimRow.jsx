@@ -97,7 +97,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                   <Activity size={14} /> Track Processing
                 </button>
 
-                {(currentStatus === "new" || currentStatus === "pending") && (role === "financial_officer" || role === "admin" || role === "super_admin") && (
+                {(currentStatus === "submitted" || currentStatus === "new" || currentStatus === "pending") && (role === "financial_officer" || role === "admin" || role === "super_admin") && (
                   <>
                     <button
                       onClick={() =>
@@ -116,12 +116,14 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     >
                       Verify
                     </button>
-                    <button
-                      onClick={() => { close(); onOpenFeedback(claim); }}
-                      className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Send Feedback
-                    </button>
+                    {(currentStatus === "submitted" || currentStatus === "new") && (
+                      <button
+                        onClick={() => { close(); onOpenFeedback(claim); }}
+                        className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 cursor-pointer"
+                      >
+                        Send Feedback
+                      </button>
+                    )}
                     <button
                       onClick={() =>
                         requestConfirm({
@@ -141,14 +143,15 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     </button>
                   </>
                 )}
-                {currentStatus === "verified" && (role === "ceo" || role === "admin" || role === "super_admin") && (
+
+                {(currentStatus === "verified" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && (role === "ceo" || role === "admin" || role === "super_admin") && (
                   <>
                     <button
                       onClick={() =>
                         requestConfirm({
                           title: "Approve for Payment",
-                          message: `Are you sure you want to send claim ${refNo} to the Accountant for payment?`,
-                          confirmLabel: "Send to Accountant",
+                          message: `Are you sure you want to approve claim ${refNo} for payment?`,
+                          confirmLabel: "Approve for Payment",
                           confirmVariant: "primary",
                           withNote: true,
                           notePlaceholder: "Payment disbursement instructions for Accountant...",
@@ -158,25 +161,29 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                       }
                       className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
                     >
-                      Send to Accountant
+                      Approve for Payment
                     </button>
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Escalate to Board",
-                          message: `Are you sure you want to send claim ${refNo} to the Board for approval?`,
-                          confirmLabel: "Send to Board",
-                          confirmVariant: "warning",
-                          withNote: true,
-                          notePlaceholder: "Justification for Board approval...",
-                          noteLabel: "Note for Board Review",
-                          onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-purple-50 text-purple-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Send to Board
-                    </button>
+
+                    {(currentStatus === "verified" || currentStatus === "further_approval_rejected") && (
+                      <button
+                        onClick={() =>
+                          requestConfirm({
+                            title: "Send for Further Approval",
+                            message: `Are you sure you want to send claim ${refNo} to the Board for further approval?`,
+                            confirmLabel: "Send for Further Approval",
+                            confirmVariant: "warning",
+                            withNote: true,
+                            notePlaceholder: "Justification for Board approval...",
+                            noteLabel: "Note for Board Review",
+                            onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
+                          })
+                        }
+                        className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-purple-50 text-purple-700 flex items-center gap-2 cursor-pointer"
+                      >
+                        Send for Further Approval
+                      </button>
+                    )}
+
                     <button
                       onClick={() =>
                         requestConfirm({
@@ -187,34 +194,14 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                           withNote: true,
                           notePlaceholder: "Reason for returning to Financial Officer...",
                           noteLabel: "Return Reason / Note",
-                          onConfirm: (note) => onTransition(claim.id, "pending", note, "financial_officer"),
+                          onConfirm: (note) => onTransition(claim.id, "submitted", note, "financial_officer"),
                         })
                       }
                       className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-amber-50 text-amber-700 flex items-center gap-2 cursor-pointer"
                     >
                       Reverse to Fin. Officer
                     </button>
-                  </>
-                )}
-                {currentStatus === "further_approval" && (role === "chairman" || role === "admin" || role === "super_admin") && (
-                  <>
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Board Approval",
-                          message: `Are you sure you want to approve claim ${refNo} and return it to the CEO?`,
-                          confirmLabel: "Approve Claim",
-                          confirmVariant: "primary",
-                          withNote: true,
-                          notePlaceholder: "Board resolution / approval note for CEO...",
-                          noteLabel: "Board Note for CEO",
-                          onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Approve — Return to CEO
-                    </button>
+
                     <button
                       onClick={() =>
                         requestConfirm({
@@ -234,6 +221,46 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     </button>
                   </>
                 )}
+
+                {currentStatus === "further_approval" && (role === "chairman" || role === "admin" || role === "super_admin") && (
+                  <>
+                    <button
+                      onClick={() =>
+                        requestConfirm({
+                          title: "Further Approval - Approve",
+                          message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO.`,
+                          confirmLabel: "Approve Claim",
+                          confirmVariant: "primary",
+                          withNote: true,
+                          notePlaceholder: "Board resolution / approval note for CEO...",
+                          noteLabel: "Board Note for CEO",
+                          onConfirm: (note) => onTransition(claim.id, "further_approval_approved", note, "ceo"),
+                        })
+                      }
+                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
+                    >
+                      Approve — Return to CEO
+                    </button>
+                    <button
+                      onClick={() =>
+                        requestConfirm({
+                          title: "Further Approval - Reject",
+                          message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
+                          confirmLabel: "Reject — Return to CEO",
+                          confirmVariant: "danger",
+                          withNote: true,
+                          notePlaceholder: "Reason for rejection...",
+                          noteLabel: "Rejection Reason",
+                          onConfirm: (note) => onTransition(claim.id, "further_approval_rejected", note, "ceo"),
+                        })
+                      }
+                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 cursor-pointer"
+                    >
+                      Reject — Return to CEO
+                    </button>
+                  </>
+                )}
+
                 {currentStatus === "approved_for_payment" && (role === "accountant" || role === "admin" || role === "super_admin") && (
                   <button
                     onClick={() =>
@@ -253,7 +280,8 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     <CheckCircle2 size={14} /> Mark as Paid
                   </button>
                 )}
-                {currentStatus === "pending" && (role === "user" || role === "admin" || role === "super_admin") && (
+
+                {currentStatus === "pending" && (role === "user" || role === "financial_officer" || role === "admin" || role === "super_admin") && (
                   <button
                     onClick={() =>
                       requestConfirm({
@@ -264,7 +292,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                         withNote: true,
                         notePlaceholder: "Summary of changes / response to feedback...",
                         noteLabel: "Resubmission Note",
-                        onConfirm: (note) => onTransition(claim.id, "new", note, "financial_officer"),
+                        onConfirm: (note) => onTransition(claim.id, "submitted", note, "financial_officer"),
                       })
                     }
                     className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
@@ -272,7 +300,8 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     Resubmit Claim
                   </button>
                 )}
-                {role === "super_admin" && (
+
+                {(role === "super_admin" || role === "admin") && (
                   <button
                     onClick={() =>
                       requestConfirm({

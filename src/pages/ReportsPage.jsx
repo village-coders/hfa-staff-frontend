@@ -134,7 +134,9 @@ export default function ReportsPage() {
     const paidClaims = filteredClaims.filter((c) => c.status === "paid");
     const paidValue = paidClaims.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
 
-    const pendingClaims = filteredClaims.filter((c) => ["new", "verified", "pending", "further_approval", "approved_for_payment"].includes(c.status));
+    const pendingClaims = filteredClaims.filter((c) =>
+      ["submitted", "new", "verified", "pending", "further_approval", "further_approval_approved", "further_approval_rejected", "approved_for_payment"].includes(c.status)
+    );
     const pendingValue = pendingClaims.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
 
     const rejectedClaims = filteredClaims.filter((c) => c.status === "rejected");
@@ -185,7 +187,10 @@ export default function ReportsPage() {
       approved_for_payment: { label: "Approved For Payment", count: 0, value: 0, color: "#06B6D4" },
       verified: { label: "Verified (CEO Review)", count: 0, value: 0, color: "#6366F1" },
       further_approval: { label: "Further Approval (Board)", count: 0, value: 0, color: "#8B5CF6" },
-      new: { label: "New (Unprocessed)", count: 0, value: 0, color: "#0EA5E9" },
+      further_approval_approved: { label: "Further Approval Approved", count: 0, value: 0, color: "#7C3AED" },
+      further_approval_rejected: { label: "Further Approval Rejected", count: 0, value: 0, color: "#DC2626" },
+      submitted: { label: "Submitted (Unprocessed)", count: 0, value: 0, color: "#0EA5E9" },
+      new: { label: "Submitted (Legacy)", count: 0, value: 0, color: "#38BDF8" },
       pending: { label: "Pending User Feedback", count: 0, value: 0, color: "#F59E0B" },
       rejected: { label: "Rejected", count: 0, value: 0, color: "#EF4444" },
     };
@@ -484,10 +489,12 @@ export default function ReportsPage() {
               <option value="all">All Statuses</option>
               <option value="paid">Paid</option>
               <option value="approved_for_payment">Approved For Payment</option>
-              <option value="verified">Verified</option>
-              <option value="further_approval">Further Approval</option>
-              <option value="new">New</option>
-              <option value="pending">Pending</option>
+              <option value="verified">Verified (CEO Review)</option>
+              <option value="further_approval">Further Approval (Board)</option>
+              <option value="further_approval_approved">Further Approval Approved</option>
+              <option value="further_approval_rejected">Further Approval Rejected</option>
+              <option value="submitted">Submitted</option>
+              <option value="pending">Pending User Feedback</option>
               <option value="rejected">Rejected</option>
             </select>
           </div>

@@ -126,7 +126,7 @@ export function AppProvider({ children }) {
               : c.claimDate
               ? new Date(c.claimDate).toISOString().slice(0, 10)
               : c.date || new Date().toISOString().slice(0, 10),
-            status: c.status ? c.status.toLowerCase() : "new",
+            status: c.status ? (c.status.toLowerCase() === "new" ? "submitted" : c.status.toLowerCase()) : "submitted",
             note: c.officerNote || c.feedbackNote || c.note || "",
             history: c.history || [],
           }));
@@ -245,10 +245,11 @@ export function AppProvider({ children }) {
       const lowerStatus = (newStatus || "").toLowerCase();
       if (lowerStatus === "verified") derivedTargetRole = "ceo";
       else if (lowerStatus === "further_approval") derivedTargetRole = "chairman";
+      else if (lowerStatus === "further_approval_approved" || lowerStatus === "further_approval_rejected") derivedTargetRole = "ceo";
       else if (lowerStatus === "approved_for_payment") derivedTargetRole = "accountant";
       else if (lowerStatus === "paid") derivedTargetRole = "user";
       else if (lowerStatus === "pending") derivedTargetRole = "user";
-      else if (lowerStatus === "new") derivedTargetRole = "financial_officer";
+      else if (lowerStatus === "submitted" || lowerStatus === "new") derivedTargetRole = "financial_officer";
       else if (lowerStatus === "rejected") derivedTargetRole = "user";
     }
 
@@ -281,7 +282,7 @@ export function AppProvider({ children }) {
 
     try {
       let res;
-      if (currentStatus === "pending" && newStatus === "new") {
+      if (currentStatus === "pending" && (newStatus === "submitted" || newStatus === "new")) {
         res = await fetch(`${API_BASE_URL}/claims/${dbId}/resubmit`, {
           method: "PUT",
           headers: apiHeaders(),
@@ -304,15 +305,18 @@ export function AppProvider({ children }) {
       
       const messages = {
         verified: "Claim verified successfully! Sent to CEO for review.",
-        approved_for_payment: "Claim approved! Forwarded to Accountant for payment.",
-        further_approval: "Claim escalated to Board of Directors for approval.",
+        approved_for_payment: "Claim approved for payment! Forwarded to Accountant.",
+        further_approval: "Claim escalated for Further Approval by the Board.",
+        further_approval_approved: "Further Approval Granted! Returned to CEO for final action.",
+        further_approval_rejected: "Further Approval Rejected by Board. Returned to CEO for review.",
         paid: "Claim marked as Paid successfully!",
         pending: "Feedback note sent to user successfully.",
-        new: "Claim resubmitted successfully for review.",
+        submitted: "Claim submitted successfully for review.",
+        new: "Claim submitted successfully for review.",
         rejected: "Claim rejected.",
       };
       const st = newStatus.toLowerCase();
-      showToast(messages[st] || `Claim updated to ${st}.`, st === "rejected" ? "info" : "success");
+      showToast(messages[st] || `Claim updated to ${st}.`, st === "rejected" || st === "further_approval_rejected" ? "info" : "success");
 
       if (!res.ok) console.error("Transition failed:", res.status);
     } catch (e) {
@@ -366,7 +370,7 @@ export function AppProvider({ children }) {
           date: serverClaim.filingDate
             ? new Date(serverClaim.filingDate).toISOString().slice(0, 10)
             : new Date().toISOString().slice(0, 10),
-          status: serverClaim.status ? serverClaim.status.toLowerCase() : "new",
+          status: serverClaim.status ? (serverClaim.status.toLowerCase() === "new" ? "submitted" : serverClaim.status.toLowerCase()) : "submitted",
           note: serverClaim.officerNote || "",
         };
         setClaims((prev) => [mappedClaim, ...prev]);

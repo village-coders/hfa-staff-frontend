@@ -27,16 +27,53 @@ export default function ClaimsPage() {
   let filtered = viewKey === "all-claims-list"
     ? (claims || [])
     : (item && item.status)
-      ? (claims || []).filter((c) => c && c.status === item.status)
+      ? (claims || []).filter((c) => {
+          if (!c) return false;
+          if (item.status === "submitted" || item.status === "new") {
+            return c.status === "submitted" || c.status === "new";
+          }
+          if (item.status === "verified") {
+            return (
+              c.status === "verified" ||
+              c.status === "further_approval_approved" ||
+              c.status === "further_approval_rejected"
+            );
+          }
+          if (item.status === "further_approval") {
+            return (
+              c.status === "further_approval" ||
+              c.status === "further_approval_approved" ||
+              c.status === "further_approval_rejected"
+            );
+          }
+          return c.status === item.status;
+        })
       : (claims || []);
 
   // Role-based visibility filtering
   if (role === "user") {
     filtered = filtered.filter((c) => c && (c.claimant === currentUser || c.claimantName === currentUser));
   } else if (role === "ceo") {
-    filtered = filtered.filter((c) => c && (c.status === "verified" || c.claimant === currentUser || c.claimantName === currentUser));
+    filtered = filtered.filter(
+      (c) =>
+        c &&
+        (c.status === "verified" ||
+          c.status === "further_approval" ||
+          c.status === "further_approval_approved" ||
+          c.status === "further_approval_rejected" ||
+          c.status === "approved_for_payment" ||
+          c.status === "paid" ||
+          c.claimant === currentUser ||
+          c.claimantName === currentUser)
+    );
   } else if (role === "chairman") {
-    filtered = filtered.filter((c) => c && c.status === "further_approval");
+    filtered = filtered.filter(
+      (c) =>
+        c &&
+        (c.status === "further_approval" ||
+          c.status === "further_approval_approved" ||
+          c.status === "further_approval_rejected")
+    );
   }
 
   if (search) {

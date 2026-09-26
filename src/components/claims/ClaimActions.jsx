@@ -63,7 +63,12 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
   const currentStatus = claim.status;
   const refNo = claim.id || claim.claimRefNo || "Claim";
 
-  if ((currentStatus === "new" || currentStatus === "pending") && (role === "financial_officer" || role === "admin" || role === "super_admin")) {
+  const isFO = role === "financial_officer" || role === "admin" || role === "super_admin";
+  const isCEO = role === "ceo" || role === "admin" || role === "super_admin";
+  const isChairman = role === "chairman" || role === "admin" || role === "super_admin";
+  const isAccountant = role === "accountant" || role === "admin" || role === "super_admin";
+
+  if ((currentStatus === "submitted" || currentStatus === "new" || currentStatus === "pending") && isFO) {
     buttons.push(
       btn("Verify", () =>
         requestConfirmation({
@@ -80,7 +85,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
         { color: T.tealLight }
       )
     );
-    if (currentStatus === "new") {
+    if (currentStatus === "submitted" || currentStatus === "new") {
       buttons.push(
         btn("Send to Pending", () => {
           setOpen(false);
@@ -106,13 +111,13 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     );
   }
 
-  if (currentStatus === "verified" && (role === "ceo" || role === "admin" || role === "super_admin")) {
+  if ((currentStatus === "verified" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && isCEO) {
     buttons.push(
-      btn("Send to Accountant", () =>
+      btn("Approve for Payment", () =>
         requestConfirmation({
           title: "Approve for Payment",
-          message: `Are you sure you want to approve claim ${refNo} and forward it to the Accountant for payment disbursement?`,
-          confirmLabel: "Send to Accountant",
+          message: `Are you sure you want to approve claim ${refNo} for payment? This will forward it to the Accountant for disbursement.`,
+          confirmLabel: "Approve for Payment",
           confirmVariant: "primary",
           withNote: true,
           noteRequired: false,
@@ -123,57 +128,43 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
         { color: T.tealLight }
       )
     );
-    buttons.push(
-      btn("Send to Board", () =>
-        requestConfirmation({
-          title: "Escalate to Board",
-          message: `Are you sure you want to escalate claim ${refNo} to the Board of Directors for further approval?`,
-          confirmLabel: "Send to Board",
-          confirmVariant: "warning",
-          withNote: true,
-          noteRequired: false,
-          notePlaceholder: "Justification for Board approval...",
-          noteLabel: "Note for Board Review",
-          onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
-        }),
-        { color: T.gray700 }
-      )
-    );
+
+    if (currentStatus === "verified" || currentStatus === "further_approval_rejected") {
+      buttons.push(
+        btn("Send for Further Approval", () =>
+          requestConfirmation({
+            title: "Send for Further Approval",
+            message: `Are you sure you want to send claim ${refNo} to the Board of Directors for further approval?`,
+            confirmLabel: "Send for Further Approval",
+            confirmVariant: "warning",
+            withNote: true,
+            noteRequired: false,
+            notePlaceholder: "Justification for Board approval...",
+            noteLabel: "Note for Board Review",
+            onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
+          }),
+          { color: T.gray700 }
+        )
+      );
+    }
+
     buttons.push(
       btn("Reverse to Fin. Officer", () =>
         requestConfirmation({
           title: "Return Claim to Financial Officer",
-          message: `Are you sure you want to return claim ${refNo} to the Financial Officer? It will move back to the New Claims list for re-evaluation.`,
+          message: `Are you sure you want to return claim ${refNo} to the Financial Officer? It will move back to the Submitted Claims list for re-evaluation.`,
           confirmLabel: "Reverse to Fin. Officer",
           confirmVariant: "warning",
           withNote: true,
           noteRequired: false,
           notePlaceholder: "Instructions / reason for return to Financial Officer...",
           noteLabel: "Return Reason / Note",
-          onConfirm: (note) => onTransition(claim.id, "new", note, "financial_officer"),
+          onConfirm: (note) => onTransition(claim.id, "submitted", note, "financial_officer"),
         }),
         { color: "#B45309" }
       )
     );
-  }
 
-  if (currentStatus === "further_approval" && (role === "chairman" || role === "admin" || role === "super_admin")) {
-    buttons.push(
-      btn("Approve — Return to CEO", () =>
-        requestConfirmation({
-          title: "Board Approval",
-          message: `Are you sure you want to approve claim ${refNo} and return it to the CEO for final action?`,
-          confirmLabel: "Approve Claim",
-          confirmVariant: "primary",
-          withNote: true,
-          noteRequired: false,
-          notePlaceholder: "Board resolution / approval note for CEO...",
-          noteLabel: "Board Note for CEO",
-          onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
-        }),
-        { color: T.tealLight }
-      )
-    );
     buttons.push(
       btn("Reject", () =>
         requestConfirmation({
@@ -192,7 +183,42 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     );
   }
 
-  if (currentStatus === "approved_for_payment" && (role === "accountant" || role === "admin" || role === "super_admin")) {
+  if (currentStatus === "further_approval" && isChairman) {
+    buttons.push(
+      btn("Approve — Return to CEO", () =>
+        requestConfirmation({
+          title: "Further Approval - Approve",
+          message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO for payment authorization.`,
+          confirmLabel: "Approve Claim",
+          confirmVariant: "primary",
+          withNote: true,
+          noteRequired: false,
+          notePlaceholder: "Board resolution / approval note for CEO...",
+          noteLabel: "Board Note for CEO",
+          onConfirm: (note) => onTransition(claim.id, "further_approval_approved", note, "ceo"),
+        }),
+        { color: T.tealLight }
+      )
+    );
+    buttons.push(
+      btn("Reject — Return to CEO", () =>
+        requestConfirmation({
+          title: "Further Approval - Reject",
+          message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
+          confirmLabel: "Reject — Return to CEO",
+          confirmVariant: "danger",
+          withNote: true,
+          noteRequired: false,
+          notePlaceholder: "Reason for Board rejection...",
+          noteLabel: "Rejection Reason for CEO",
+          onConfirm: (note) => onTransition(claim.id, "further_approval_rejected", note, "ceo"),
+        }),
+        { color: "#B91C1C" }
+      )
+    );
+  }
+
+  if (currentStatus === "approved_for_payment" && isAccountant) {
     buttons.push(
       btn("Mark as Paid", () =>
         requestConfirmation({
@@ -211,26 +237,26 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     );
   }
 
-  if (currentStatus === "pending" && (role === "user" || role === "financial_officer" || role === "admin" || role === "super_admin")) {
+  if (currentStatus === "pending" && (role === "user" || isFO)) {
     buttons.push(
       btn("Resubmit Claim", () =>
         requestConfirmation({
           title: "Resubmit Expense Claim",
-          message: `Are you sure you want to resubmit claim ${refNo}? It will move to the New Claims list for review.`,
+          message: `Are you sure you want to resubmit claim ${refNo}? It will move to the Submitted Claims list for review.`,
           confirmLabel: "Resubmit",
           confirmVariant: "primary",
           withNote: true,
           noteRequired: false,
           notePlaceholder: "Note...",
           noteLabel: "Note",
-          onConfirm: (note) => onTransition(claim.id, "new", note, "financial_officer"),
+          onConfirm: (note) => onTransition(claim.id, "submitted", note, "financial_officer"),
         }),
         { color: T.tealLight }
       )
     );
   }
 
-  if (role === "super_admin" && view !== "manage-claim-sheet") {
+  if ((role === "super_admin" || role === "admin") && view !== "manage-claim-sheet") {
     buttons.push(
       btn("Delete", () =>
         requestConfirmation({
