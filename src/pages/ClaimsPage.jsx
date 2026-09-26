@@ -105,6 +105,9 @@ export default function ClaimsPage() {
     if (role === "ceo" && viewKey === "verified-list") {
       return `${filtered.length} verified claim${filtered.length !== 1 ? "s" : ""} awaiting your review`;
     }
+    if (role === "ceo" && viewKey === "further-approval") {
+      return `${filtered.length} claim${filtered.length !== 1 ? "s" : ""} sent for Board approval`;
+    }
     if (role === "chairman" && viewKey === "further-approval") {
       return `${filtered.length} claim${filtered.length !== 1 ? "s" : ""} awaiting Board approval`;
     }

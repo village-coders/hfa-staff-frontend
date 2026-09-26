@@ -140,23 +140,52 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
         if (role === "financial_officer" || role === "admin" || role === "super_admin") {
           if (it.status === "submitted" || it.status === "new") {
             counts[it.key] = claims.filter((c) => c.status === "submitted" || c.status === "new").length;
+          } else if (it.key === "verified-list") {
+            counts[it.key] = claims.filter(
+              (c) =>
+                c.status === "verified" ||
+                c.status === "further_approval_approved" ||
+                c.status === "further_approval_rejected"
+            ).length;
+          } else if (it.key === "further-approval") {
+            counts[it.key] = claims.filter(
+              (c) =>
+                c.status === "further_approval" ||
+                c.status === "further_approval_approved" ||
+                c.status === "further_approval_rejected"
+            ).length;
           } else {
             counts[it.key] = claims.filter((c) => c.status === it.status).length;
           }
-        } else if (role === "ceo" && it.key === "verified-list") {
-          counts[it.key] = claims.filter(
-            (c) =>
-              c.status === "verified" ||
-              c.status === "further_approval_approved" ||
-              c.status === "further_approval_rejected"
-          ).length;
-        } else if (role === "chairman" && it.key === "further-approval") {
-          counts[it.key] = claims.filter(
-            (c) =>
-              c.status === "further_approval" ||
-              c.status === "further_approval_approved" ||
-              c.status === "further_approval_rejected"
-          ).length;
+        } else if (role === "ceo") {
+          if (it.key === "verified-list") {
+            counts[it.key] = claims.filter(
+              (c) =>
+                c.status === "verified" ||
+                c.status === "further_approval_approved" ||
+                c.status === "further_approval_rejected"
+            ).length;
+          } else if (it.key === "further-approval") {
+            counts[it.key] = claims.filter(
+              (c) =>
+                c.status === "further_approval" ||
+                c.status === "further_approval_approved" ||
+                c.status === "further_approval_rejected"
+            ).length;
+          } else {
+            counts[it.key] = claims.filter((c) => c.status === it.status).length;
+          }
+        } else if (role === "chairman") {
+          if (it.key === "further-approval") {
+            counts[it.key] = claims.filter(
+              (c) =>
+                c.status === "further_approval" ||
+                c.status === "further_approval_approved" ||
+                c.status === "further_approval_rejected"
+            ).length;
+          } else {
+            counts[it.key] = claims.filter((c) => c.status === it.status).length;
+          }
         } else {
           counts[it.key] = 0;
         }

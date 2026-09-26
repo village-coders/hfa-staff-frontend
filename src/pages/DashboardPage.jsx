@@ -44,8 +44,13 @@ export default function DashboardPage() {
       { label: "Rejected", value: counts.rejected, icon: XCircle, accent: "#B91C1C", targetView: "rejected-claim-list" },
     ];
   } else if (role === "ceo") {
+    const awaitingCeoReview = (counts.verified || 0) + (counts.further_approval_approved || 0) + (counts.further_approval_rejected || 0);
+    const furtherApprovalTotal = (counts.further_approval || 0) + (counts.further_approval_approved || 0) + (counts.further_approval_rejected || 0);
     cards = [
-      { label: "Verified — Awaiting You", value: counts.verified, icon: BadgeCheck, accent: "#4338CA", targetView: "verified-list" },
+      { label: "Verified — Awaiting You", value: awaitingCeoReview, icon: BadgeCheck, accent: "#4338CA", targetView: "verified-list" },
+      { label: "Further Approval (Board)", value: furtherApprovalTotal, icon: Building2, accent: "#7C3AED", targetView: "further-approval" },
+      { label: "Approved For Payment", value: counts.approved_for_payment || 0, icon: CircleDollarSign, accent: "#0E7490", targetView: "all-claims-list" },
+      { label: "Total Claims", value: counts.total || claims.length, icon: FileEdit, accent: "#007A87", targetView: "all-claims-list" },
     ];
   } else if (role === "accountant") {
     cards = [
@@ -55,9 +60,11 @@ export default function DashboardPage() {
       { label: "Pending Processing", value: counts.pending, icon: Clock3, accent: "#B45309", targetView: "all-claims-list" },
     ];
   } else if (role === "chairman") {
+    const furtherApprovalTotal = (counts.further_approval || 0) + (counts.further_approval_approved || 0) + (counts.further_approval_rejected || 0);
     cards = [
-      { label: "Awaiting Board Review", value: counts.further_approval, icon: Building2, accent: "#7C3AED", targetView: "further-approval" },
-      { label: "Combined Value", value: fmtN(claims.filter((c) => c.status === "further_approval").reduce((s, c) => s + c.amount, 0)), icon: CircleDollarSign, accent: "#007A87", targetView: "further-approval" },
+      { label: "Awaiting Board Review", value: counts.further_approval || 0, icon: Building2, accent: "#7C3AED", targetView: "further-approval" },
+      { label: "Further Approval Total", value: furtherApprovalTotal, icon: BadgeCheck, accent: "#059669", targetView: "further-approval" },
+      { label: "Combined Value", value: fmtN(claims.filter((c) => c.status === "further_approval" || c.status === "further_approval_approved" || c.status === "further_approval_rejected").reduce((s, c) => s + c.amount, 0)), icon: CircleDollarSign, accent: "#007A87", targetView: "further-approval" },
     ];
   } else if (role === "admin" || role === "super_admin") {
     cards = [
@@ -78,9 +85,9 @@ export default function DashboardPage() {
     role === "user"
       ? claims.filter((c) => c.claimant === currentUser || c.claimantName === currentUser)
       : role === "ceo"
-      ? claims.filter((c) => c.status === "verified")
+      ? claims.filter((c) => c.status === "verified" || c.status === "further_approval_approved" || c.status === "further_approval_rejected" || c.status === "further_approval")
       : role === "chairman"
-      ? claims.filter((c) => c.status === "further_approval")
+      ? claims.filter((c) => c.status === "further_approval" || c.status === "further_approval_approved" || c.status === "further_approval_rejected")
       : claims
   ).slice(0, 8);
 

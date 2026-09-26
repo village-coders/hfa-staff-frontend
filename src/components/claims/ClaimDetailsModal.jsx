@@ -164,7 +164,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
             };
 
             const history = Array.isArray(claim.history) ? claim.history : [];
-            const verifiedEntry = history.find(
+            const verifiedEntry = [...history].reverse().find(
               (h) => (h.toStatus || "").toLowerCase() === "verified"
             );
 
@@ -175,25 +175,26 @@ export default function ClaimDetailsModal({ claim, onClose }) {
               const aRole = (h.actorRole || "").toLowerCase();
               return (
                 toSt === "further_approval_approved" ||
+                toSt === "further_approval_rejected" ||
                 toSt === "further_approval" ||
                 fromSt === "further_approval" ||
                 aRole === "chairman"
               );
             }) || (claim.status || "").toLowerCase().includes("further_approval") || Boolean(claim.furtherApprovedBy);
 
-            const furtherApprovedEntry = history.find((h) => {
+            const furtherApprovedEntry = [...history].reverse().find((h) => {
               const toSt = (h.toStatus || "").toLowerCase();
               const aRole = (h.actorRole || "").toLowerCase();
-              return toSt === "further_approval_approved" || toSt === "further_approval" || aRole === "chairman";
+              return toSt === "further_approval_approved" || toSt === "further_approval_rejected" || aRole === "chairman";
             });
 
-            const approvedPaymentEntry = history.find(
+            const approvedPaymentEntry = [...history].reverse().find(
               (h) => (h.toStatus || "").toLowerCase() === "approved_for_payment"
             );
-            const paidEntry = history.find(
+            const paidEntry = [...history].reverse().find(
               (h) => (h.toStatus || "").toLowerCase() === "paid"
             );
-            const standardApprovedEntry = history.find(
+            const standardApprovedEntry = [...history].reverse().find(
               (h) => (h.toStatus || "").toLowerCase() === "approved" || (h.toStatus || "").toLowerCase() === "approved_for_payment"
             );
 
@@ -229,7 +230,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
               new: "Submitted",
               pending: "Pending",
               verified: "Verified",
-              further_approval: "Further Approval Required",
+              further_approval: "Further Approval",
               further_approval_approved: "Further Approval Approved",
               further_approval_rejected: "Further Approval Rejected",
               approved_for_payment: "Approved For Payment",
