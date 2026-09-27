@@ -144,7 +144,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                   </>
                 )}
 
-                {(currentStatus === "verified" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && (role === "ceo" || role === "admin" || role === "super_admin") && (
+                {(currentStatus === "verified" || currentStatus === "further_approval" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && (role === "ceo" || role === "admin" || role === "super_admin") && (
                   <>
                     <button
                       onClick={() =>
@@ -163,6 +163,26 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                     >
                       Approve for Payment
                     </button>
+
+                    {currentStatus === "further_approval" && (
+                      <button
+                        onClick={() =>
+                          requestConfirm({
+                            title: "Recall to Verified",
+                            message: `Are you sure you want to recall claim ${refNo} back to Verified status?`,
+                            confirmLabel: "Recall to Verified",
+                            confirmVariant: "warning",
+                            withNote: true,
+                            notePlaceholder: "Reason for recall...",
+                            noteLabel: "Recall Note",
+                            onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
+                          })
+                        }
+                        className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-indigo-50 text-indigo-700 flex items-center gap-2 cursor-pointer"
+                      >
+                        Recall to Verified
+                      </button>
+                    )}
 
                     {(currentStatus === "verified" || currentStatus === "further_approval_rejected") && (
                       <button
@@ -222,42 +242,65 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
                   </>
                 )}
 
-                {currentStatus === "further_approval" && (role === "chairman" || role === "admin" || role === "super_admin") && (
+                {(currentStatus === "further_approval" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && (role === "chairman" || role === "ceo" || role === "admin" || role === "super_admin") && (
                   <>
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Further Approval - Approve",
-                          message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO.`,
-                          confirmLabel: "Approve Claim",
-                          confirmVariant: "primary",
-                          withNote: true,
-                          notePlaceholder: "Board resolution / approval note for CEO...",
-                          noteLabel: "Board Note for CEO",
-                          onConfirm: (note) => onTransition(claim.id, "further_approval_approved", note, "ceo"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Approve — Return to CEO
-                    </button>
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Further Approval - Reject",
-                          message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
-                          confirmLabel: "Reject — Return to CEO",
-                          confirmVariant: "danger",
-                          withNote: true,
-                          notePlaceholder: "Reason for rejection...",
-                          noteLabel: "Rejection Reason",
-                          onConfirm: (note) => onTransition(claim.id, "further_approval_rejected", note, "ceo"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Reject — Return to CEO
-                    </button>
+                    {(currentStatus === "further_approval" || currentStatus === "further_approval_rejected") && (
+                      <button
+                        onClick={() =>
+                          requestConfirm({
+                            title: "Further Approval - Approve",
+                            message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO.`,
+                            confirmLabel: "Approve Claim",
+                            confirmVariant: "primary",
+                            withNote: true,
+                            notePlaceholder: "Board resolution / approval note for CEO...",
+                            noteLabel: "Board Note for CEO",
+                            onConfirm: (note) => onTransition(claim.id, "further_approval_approved", note, "ceo"),
+                          })
+                        }
+                        className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
+                      >
+                        Approve — Return to CEO
+                      </button>
+                    )}
+                    {(currentStatus === "further_approval" || currentStatus === "further_approval_approved") && (
+                      <button
+                        onClick={() =>
+                          requestConfirm({
+                            title: "Further Approval - Reject",
+                            message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
+                            confirmLabel: "Reject — Return to CEO",
+                            confirmVariant: "danger",
+                            withNote: true,
+                            notePlaceholder: "Reason for rejection...",
+                            noteLabel: "Rejection Reason",
+                            onConfirm: (note) => onTransition(claim.id, "further_approval_rejected", note, "ceo"),
+                          })
+                        }
+                        className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 cursor-pointer"
+                      >
+                        Reject — Return to CEO
+                      </button>
+                    )}
+                    {(role === "chairman" || role === "admin" || role === "super_admin") && (currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && (
+                      <button
+                        onClick={() =>
+                          requestConfirm({
+                            title: "Reopen Board Review",
+                            message: `Are you sure you want to reopen Board review for claim ${refNo}? Status will return to Further Approval.`,
+                            confirmLabel: "Reopen Review",
+                            confirmVariant: "warning",
+                            withNote: true,
+                            notePlaceholder: "Reason for reopening Board review...",
+                            noteLabel: "Review Note",
+                            onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
+                          })
+                        }
+                        className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-purple-50 text-purple-700 flex items-center gap-2 cursor-pointer"
+                      >
+                        Reopen Board Review
+                      </button>
+                    )}
                   </>
                 )}
 

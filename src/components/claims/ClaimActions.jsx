@@ -111,7 +111,7 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     );
   }
 
-  if ((currentStatus === "verified" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && isCEO) {
+  if ((currentStatus === "verified" || currentStatus === "further_approval" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && isCEO) {
     buttons.push(
       btn("Approve for Payment", () =>
         requestConfirmation({
@@ -128,6 +128,25 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
         { color: T.tealLight }
       )
     );
+
+    if (currentStatus === "further_approval") {
+      buttons.push(
+        btn("Recall to Verified", () =>
+          requestConfirmation({
+            title: "Recall to Verified",
+            message: `Are you sure you want to recall claim ${refNo} back to Verified status?`,
+            confirmLabel: "Recall to Verified",
+            confirmVariant: "warning",
+            withNote: true,
+            noteRequired: false,
+            notePlaceholder: "Reason for recall...",
+            noteLabel: "Recall Note",
+            onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
+          }),
+          { color: "#4338CA" }
+        )
+      );
+    }
 
     if (currentStatus === "verified" || currentStatus === "further_approval_rejected") {
       buttons.push(
@@ -183,39 +202,61 @@ export default function ClaimActions({ claim, view, role, onTransition, onOpenFe
     );
   }
 
-  if (currentStatus === "further_approval" && isChairman) {
-    buttons.push(
-      btn("Approve — Return to CEO", () =>
-        requestConfirmation({
-          title: "Further Approval - Approve",
-          message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO for payment authorization.`,
-          confirmLabel: "Approve Claim",
-          confirmVariant: "primary",
-          withNote: true,
-          noteRequired: false,
-          notePlaceholder: "Board resolution / approval note for CEO...",
-          noteLabel: "Board Note for CEO",
-          onConfirm: (note) => onTransition(claim.id, "further_approval_approved", note, "ceo"),
-        }),
-        { color: T.tealLight }
-      )
-    );
-    buttons.push(
-      btn("Reject — Return to CEO", () =>
-        requestConfirmation({
-          title: "Further Approval - Reject",
-          message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
-          confirmLabel: "Reject — Return to CEO",
-          confirmVariant: "danger",
-          withNote: true,
-          noteRequired: false,
-          notePlaceholder: "Reason for Board rejection...",
-          noteLabel: "Rejection Reason for CEO",
-          onConfirm: (note) => onTransition(claim.id, "further_approval_rejected", note, "ceo"),
-        }),
-        { color: "#B91C1C" }
-      )
-    );
+  if ((currentStatus === "further_approval" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && (isChairman || isCEO)) {
+    if (currentStatus === "further_approval" || currentStatus === "further_approval_rejected") {
+      buttons.push(
+        btn("Approve — Return to CEO", () =>
+          requestConfirmation({
+            title: "Further Approval - Approve",
+            message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO for payment authorization.`,
+            confirmLabel: "Approve Claim",
+            confirmVariant: "primary",
+            withNote: true,
+            noteRequired: false,
+            notePlaceholder: "Board resolution / approval note for CEO...",
+            noteLabel: "Board Note for CEO",
+            onConfirm: (note) => onTransition(claim.id, "further_approval_approved", note, "ceo"),
+          }),
+          { color: T.tealLight }
+        )
+      );
+    }
+    if (currentStatus === "further_approval" || currentStatus === "further_approval_approved") {
+      buttons.push(
+        btn("Reject — Return to CEO", () =>
+          requestConfirmation({
+            title: "Further Approval - Reject",
+            message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
+            confirmLabel: "Reject — Return to CEO",
+            confirmVariant: "danger",
+            withNote: true,
+            noteRequired: false,
+            notePlaceholder: "Reason for Board rejection...",
+            noteLabel: "Rejection Reason for CEO",
+            onConfirm: (note) => onTransition(claim.id, "further_approval_rejected", note, "ceo"),
+          }),
+          { color: "#B91C1C" }
+        )
+      );
+    }
+    if (isChairman && (currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected")) {
+      buttons.push(
+        btn("Reopen Board Review", () =>
+          requestConfirmation({
+            title: "Reopen Board Review",
+            message: `Are you sure you want to reopen Board review for claim ${refNo}? Status will return to Further Approval.`,
+            confirmLabel: "Reopen Review",
+            confirmVariant: "warning",
+            withNote: true,
+            noteRequired: false,
+            notePlaceholder: "Reason for reopening Board review...",
+            noteLabel: "Review Note",
+            onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
+          }),
+          { color: "#7C3AED" }
+        )
+      );
+    }
   }
 
   if (currentStatus === "approved_for_payment" && isAccountant) {

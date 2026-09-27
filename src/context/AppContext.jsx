@@ -238,6 +238,7 @@ export function AppProvider({ children }) {
     const claimObj = claims.find((c) => c.id === id || c._id === id);
     const dbId = claimObj?._id || id;
     const currentStatus = claimObj?.status;
+    const previousClaims = claims;
 
     // Determine target role for note routing
     let derivedTargetRole = targetRole;
@@ -255,6 +256,8 @@ export function AppProvider({ children }) {
 
     setTransitioningId(`${id}-${newStatus}`);
 
+    const normalizedTargetStatus = newStatus.toLowerCase() === "new" ? "submitted" : newStatus.toLowerCase();
+
     // Optimistic update with history record
     setClaims((prev) =>
       prev.map((c) => {
@@ -263,7 +266,7 @@ export function AppProvider({ children }) {
             actorName: currentUser || "User",
             actorRole: role,
             fromStatus: c.status,
-            toStatus: newStatus.toLowerCase(),
+            toStatus: normalizedTargetStatus,
             note: note || "",
             targetRole: derivedTargetRole,
             timestamp: new Date().toISOString(),
@@ -271,7 +274,7 @@ export function AppProvider({ children }) {
           const updatedHistory = Array.isArray(c.history) ? [...c.history, newEntry] : [newEntry];
           return {
             ...c,
-            status: newStatus.toLowerCase(),
+            status: normalizedTargetStatus,
             note: note ?? c.note,
             history: updatedHistory,
           };
@@ -279,6 +282,19 @@ export function AppProvider({ children }) {
         return c;
       })
     );
+
+    // Keep selectedClaimForDetails in sync if modal is open
+    setSelectedClaimForDetails((prev) => {
+      if (!prev) return null;
+      if (prev.id === id || prev._id === id) {
+        return {
+          ...prev,
+          status: normalizedTargetStatus,
+          note: note ?? prev.note,
+        };
+      }
+      return prev;
+    });
 
     try {
       let res;
@@ -315,7 +331,7 @@ export function AppProvider({ children }) {
         new: "Claim submitted successfully for review.",
         rejected: "Claim rejected.",
       };
-      const st = newStatus.toLowerCase();
+      const st = normalizedTargetStatus;
 
       if (res.ok) {
         const json = await res.json().catch(() => null);
@@ -334,15 +350,31 @@ export function AppProvider({ children }) {
               return c;
             })
           );
+          setSelectedClaimForDetails((prev) => {
+            if (!prev) return null;
+            if (prev.id === id || prev._id === id || prev.id === updated.claimRefNo || prev._id === updated._id) {
+              return {
+                ...prev,
+                status: (updated.status || newStatus).toLowerCase() === "new" ? "submitted" : (updated.status || newStatus).toLowerCase(),
+                note: updated.officerNote || note || prev.note,
+                history: Array.isArray(updated.history) ? updated.history : prev.history,
+              };
+            }
+            return prev;
+          });
         }
         showToast(messages[st] || `Claim updated to ${st}.`, st === "rejected" || st === "further_approval_rejected" ? "info" : "success");
       } else {
         const errJson = await res.json().catch(() => null);
         console.error("Transition failed:", res.status, errJson);
+        // Rollback state on error
+        setClaims(previousClaims);
         showToast(errJson?.message || "Failed to update claim status.", "error");
       }
     } catch (e) {
       console.error("Transition error:", e);
+      // Rollback state on error
+      setClaims(previousClaims);
       showToast("Error executing action. Please try again.", "error");
     } finally {
       setTransitioningId(null);

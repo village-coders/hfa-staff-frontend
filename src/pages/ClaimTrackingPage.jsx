@@ -50,10 +50,10 @@ export default function ClaimTrackingPage() {
       icon: ShieldCheck,
       color: "#0369A1",
       bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-800",
-      passedStatuses: showBoard
-        ? ["further_approval", "further_approval_approved", "further_approval_rejected", "approved_for_payment", "paid"]
-        : ["approved_for_payment", "paid"],
-      activeStatuses: ["verified"],
+      passedStatuses: ["approved_for_payment", "paid"],
+      activeStatuses: showBoard
+        ? ["verified", "further_approval_approved", "further_approval_rejected"]
+        : ["verified"],
     },
     ...(showBoard ? [{
       key: "board_review",

@@ -85,7 +85,7 @@ export default function DashboardPage() {
     role === "user"
       ? claims.filter((c) => c.claimant === currentUser || c.claimantName === currentUser)
       : role === "ceo"
-      ? claims.filter((c) => c.status === "verified" || c.status === "further_approval_approved" || c.status === "further_approval_rejected" || c.status === "further_approval")
+      ? claims.filter((c) => c.status === "verified" || c.status === "further_approval" || c.status === "further_approval_approved" || c.status === "further_approval_rejected" || c.status === "approved_for_payment" || c.status === "paid")
       : role === "chairman"
       ? claims.filter((c) => c.status === "further_approval" || c.status === "further_approval_approved" || c.status === "further_approval_rejected")
       : claims
