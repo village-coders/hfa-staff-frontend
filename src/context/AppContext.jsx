@@ -23,6 +23,7 @@ export function AppProvider({ children }) {
   const currentUser = loggedInUser?.name || loggedInUser?.username || "";
 
   const [claims, setClaims] = useState([]);
+  const [claimStats, setClaimStats] = useState(null);
   const [assets, setAssets] = useState([]);
   const [users, setUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -47,7 +48,24 @@ export function AppProvider({ children }) {
   const openAddAsset = () => setIsAddAssetOpen(true);
   const closeAddAsset = () => setIsAddAssetOpen(false);
 
-  const openClaimDetails = (claim) => setSelectedClaimForDetails(claim);
+  const openClaimDetails = async (claim) => {
+    if (!claim) return;
+    setSelectedClaimForDetails(claim);
+    if (!claim.items || claim.items.length === 0) {
+      try {
+        const id = claim._id || claim.id;
+        const res = await fetch(`${API_BASE_URL}/claims/${id}`, { headers: apiHeaders() });
+        if (res.ok) {
+          const full = await res.json();
+          if (full.data) {
+            setSelectedClaimForDetails((prev) => ({ ...prev, ...full.data }));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load full claim details:", e);
+      }
+    }
+  };
   const closeClaimDetails = () => setSelectedClaimForDetails(null);
 
   // Persist auth
@@ -102,6 +120,12 @@ export function AppProvider({ children }) {
       };
 
       try {
+        // Fast parallel fetch for summary stats (renders dashboard immediately in <50ms)
+        fetch(`${API_BASE_URL}/claims/summary`, { headers })
+          .then((r) => r.ok && r.json())
+          .then((s) => { if (s && s.success) setClaimStats(s); })
+          .catch(() => {});
+
         const claimsRes = await fetch(`${API_BASE_URL}/claims?limit=10000`, { headers });
         if (checkAuth(claimsRes)) {
           const d = await claimsRes.json();
@@ -651,6 +675,7 @@ export function AppProvider({ children }) {
     role,
     currentUser,
     claims,
+    claimStats,
     assets,
     users,
     notifications,

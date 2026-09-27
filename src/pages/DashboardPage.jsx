@@ -13,7 +13,7 @@ import { ROLES, VIEW_TO_PATH } from "../constants/menu";
 import { STATUS, fmtN } from "../constants/theme";
 
 export default function DashboardPage() {
-  const { role, claims, currentUser, handleTransition, handleDeleteClaim } = useApp();
+  const { role, claims, claimStats, currentUser, handleTransition, handleDeleteClaim } = useApp();
   const navigate = useNavigate();
 
   const [selectedClaimForDetails, setSelectedClaimForDetails] = useState(null);
@@ -23,10 +23,18 @@ export default function DashboardPage() {
   const counts = useMemo(() => {
     const c = {};
     Object.keys(STATUS).forEach((k) => (c[k] = claims.filter((x) => x.status === k).length));
-    c.total = claims.length;
+    c.total = claimStats?.totalClaims || claims.length;
+
+    // Instant stats from server aggregation pipeline
+    if (claimStats?.countsByStatus) {
+      Object.entries(claimStats.countsByStatus).forEach(([st, cnt]) => {
+        if (!c[st] || c[st] === 0) c[st] = cnt;
+      });
+    }
+
     c.mine = claims.filter((x) => x.claimant === currentUser || x.claimantName === currentUser).length;
     return c;
-  }, [claims, currentUser]);
+  }, [claims, currentUser, claimStats]);
 
   let cards = [];
   if (role === "user") {
