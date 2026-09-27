@@ -18,7 +18,7 @@ export const ROLES = [
 ];
 
 export const CLAIM_ITEMS = [
-  { key: "manage-claim-sheet", label: "New Claim", icon: FileEdit },
+  { key: "manage-claim-sheet", label: "Manage Claim Sheet", icon: FileEdit },
   { key: "all-claims-list", label: "Manage Claim List", icon: LayoutDashboard },
   { key: "new-claim-list", label: "Submitted Claim List", icon: FilePlus2, status: "submitted" },
   { key: "verified-list", label: "Verified List", icon: BadgeCheck, status: "verified" },
@@ -47,7 +47,7 @@ export const MENU_ACCESS = {
 
 export const VIEW_TITLES = {
   dashboard: "Dashboard",
-  "manage-claim-sheet": "New Claim",
+  "manage-claim-sheet": "Manage Claim Sheet",
   "all-claims-list": "Manage Claim List",
   "new-claim-list": "Submitted Claim List",
   "verified-list": "Verified List",

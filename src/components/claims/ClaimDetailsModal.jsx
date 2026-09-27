@@ -201,7 +201,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
             const isPastVerified = claim.status && claim.status.toLowerCase() !== "new" && claim.status.toLowerCase() !== "submitted" && claim.status.toLowerCase() !== "pending";
 
             const verifierName = verifiedEntry?.actorName || claim.verifiedBy || (isPastVerified ? "Jaweria" : "");
-            const verifierDate = verifiedEntry?.timestamp ? fmtAuditDate(verifiedEntry.timestamp) : (isPastVerified ? (claim.date ? fmtAuditDate(claim.date) : "11-Aug-2026") : "");
+            const verifierDate = verifiedEntry?.timestamp ? fmtAuditDate(verifiedEntry.timestamp) : (isPastVerified && claim.date ? fmtAuditDate(claim.date) : "");
             const verifiedText = verifierName ? `${verifierName} (Date: ${verifierDate})` : "(Date: )";
 
             const appPaymentName = approvedPaymentEntry?.actorName || claim.approvedForPaymentBy || "";

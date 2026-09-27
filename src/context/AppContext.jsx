@@ -96,6 +96,18 @@ export function AppProvider({ children }) {
     return [];
   };
 
+  // Format dates safely across varied backend formats
+  const safeFormatDate = (raw) => {
+    if (!raw) return "";
+    try {
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return String(raw).slice(0, 10);
+      return d.toISOString().slice(0, 10);
+    } catch {
+      return String(raw).slice(0, 10);
+    }
+  };
+
   // Fetch all data after login
   useEffect(() => {
     if (!loggedInUser) {
@@ -145,11 +157,7 @@ export function AppProvider({ children }) {
             subtotals: c.subtotals || null,
             attachments: c.attachments || c.files || [],
             amount: (c.subtotals && c.subtotals.grandTotal) || c.totalClaimAmount || c.amount || 0,
-            date: c.filingDate
-              ? new Date(c.filingDate).toISOString().slice(0, 10)
-              : c.claimDate
-              ? new Date(c.claimDate).toISOString().slice(0, 10)
-              : c.date || new Date().toISOString().slice(0, 10),
+            date: safeFormatDate(c.filingDate || c.claimDate || c.createdAt || c.date || c.updatedAt),
             status: c.status ? (c.status.toLowerCase() === "new" ? "submitted" : c.status.toLowerCase()) : "submitted",
             note: c.officerNote || c.feedbackNote || c.note || "",
             history: c.history || [],
