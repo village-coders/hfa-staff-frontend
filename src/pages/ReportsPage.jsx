@@ -28,7 +28,7 @@ export default function ReportsPage() {
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [selectedClaimForDetails, setSelectedClaimForDetails] = useState(null);
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(25);
 
   // Guard: Only super_admin can view reports
   const isSuperAdmin = role === "super_admin";
@@ -931,6 +931,7 @@ export default function ReportsPage() {
             setPage={setPage}
             totalItems={filteredClaims.length}
             pageSize={pageSize}
+            setPageSize={setPageSize}
           />
         </div>
       </div>

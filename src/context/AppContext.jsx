@@ -102,7 +102,7 @@ export function AppProvider({ children }) {
       };
 
       try {
-        const claimsRes = await fetch(`${API_BASE_URL}/claims?limit=1000`, { headers });
+        const claimsRes = await fetch(`${API_BASE_URL}/claims?limit=10000`, { headers });
         if (checkAuth(claimsRes)) {
           const d = await claimsRes.json();
           const list = extractList(d);
@@ -136,21 +136,23 @@ export function AppProvider({ children }) {
         }
       } catch { setClaims([]); }
 
-      try {
-        const usersRes = await fetch(`${API_BASE_URL}/users`, { headers });
-        if (checkAuth(usersRes)) {
-          const d = await usersRes.json();
-          const list = extractList(d);
-          const mapped = list.map((u) => ({
-            _id: u._id,
-            name: u.fullName || u.name || "",
-            email: u.email || "",
-            role: u.role || "user",
-            username: u.username || "",
-          }));
-          setUsers(mapped);
-        }
-      } catch { /* keep empty */ }
+      if (role === "super_admin" || role === "admin") {
+        try {
+          const usersRes = await fetch(`${API_BASE_URL}/users`, { headers });
+          if (checkAuth(usersRes)) {
+            const d = await usersRes.json();
+            const list = extractList(d);
+            const mapped = list.map((u) => ({
+              _id: u._id,
+              name: u.fullName || u.name || "",
+              email: u.email || "",
+              role: u.role || "user",
+              username: u.username || "",
+            }));
+            setUsers(mapped);
+          }
+        } catch { /* keep empty */ }
+      }
 
       try {
         const assetsRes = await fetch(`${API_BASE_URL}/assets`, { headers });
@@ -603,7 +605,7 @@ export function AppProvider({ children }) {
     );
 
     try {
-      fetch(`${API_BASE_URL}/notifications/${n._id || n.id}/read`, {
+      fetch(`${API_BASE_URL}/notifications/${n._id || n.id}/mark-read`, {
         method: "PATCH",
         headers: apiHeaders(),
       }).catch(() => {});

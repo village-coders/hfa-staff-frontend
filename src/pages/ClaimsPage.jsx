@@ -19,6 +19,7 @@ export default function ClaimsPage() {
   const item = CLAIM_ITEMS.find((i) => i.key === viewKey) || CLAIM_ITEMS[1];
 
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
   const [feedbackClaim, setFeedbackClaim] = useState(null);
   const [feedbackText, setFeedbackText] = useState("");
@@ -87,7 +88,6 @@ export default function ClaimsPage() {
     );
   }
 
-  const pageSize = 10;
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const submitFeedback = () => {
@@ -175,7 +175,13 @@ export default function ClaimsPage() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={page} setPage={setPage} totalItems={filtered.length} pageSize={pageSize} />
+            <Pagination
+              page={page}
+              setPage={setPage}
+              totalItems={filtered.length}
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+            />
           </>
         )}
       </div>

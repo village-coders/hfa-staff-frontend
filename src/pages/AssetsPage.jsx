@@ -19,11 +19,11 @@ export default function AssetsPage() {
 
   const viewKey = PATH_TO_VIEW[location.pathname] || "manage-asset";
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [assetToDelete, setAssetToDelete] = useState(null);
 
   const isSuperAdmin = role === "super_admin";
-  const pageSize = 10;
   const paged = assets.slice((page - 1) * pageSize, page * pageSize);
 
   if (viewKey === "new-asset-list") {
@@ -108,7 +108,13 @@ export default function AssetsPage() {
             </tbody>
           </table>
         </div>
-        <Pagination page={page} setPage={setPage} totalItems={assets.length} pageSize={pageSize} />
+        <Pagination
+          page={page}
+          setPage={setPage}
+          totalItems={assets.length}
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+        />
       </div>
 
       {/* Delete Asset Confirmation Modal */}
