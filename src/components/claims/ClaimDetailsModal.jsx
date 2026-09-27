@@ -575,7 +575,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
             )}
 
             {/* CEO actions */}
-            {(currentStatus === "verified" || currentStatus === "further_approval" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && isCEO && (
+            {(currentStatus === "verified" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && isCEO && (
               <>
                 <button
                   type="button"
@@ -622,31 +622,6 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                     className="px-3.5 py-2 rounded-xl text-xs font-bold text-purple-900 bg-purple-100 hover:bg-purple-200 border border-purple-300 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <Building size={14} /> Send for Further Approval
-                  </button>
-                )}
-
-                {currentStatus === "further_approval" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPendingConfirm({
-                        title: "Recall to Verified",
-                        message: `Are you sure you want to recall claim ${refNo} back to Verified status?`,
-                        confirmLabel: "Recall to Verified",
-                        confirmVariant: "warning",
-                        withNote: true,
-                        noteRequired: false,
-                        notePlaceholder: "Reason for recall...",
-                        noteLabel: "Recall Note",
-                        onConfirm: async (note) => {
-                          await handleTransition(claim.id, "verified", note, "ceo");
-                          if (onClose) onClose();
-                        },
-                      })
-                    }
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <RotateCcw size={14} /> Recall to Verified
                   </button>
                 )}
 
@@ -699,82 +674,52 @@ export default function ClaimDetailsModal({ claim, onClose }) {
             )}
 
             {/* Board / Chairman actions */}
-            {(currentStatus === "further_approval" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && isChairman && (
+            {currentStatus === "further_approval" && isChairman && (
               <>
-                {(currentStatus === "further_approval" || currentStatus === "further_approval_rejected") && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPendingConfirm({
-                        title: "Further Approval - Approve",
-                        message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO for payment authorization.`,
-                        confirmLabel: "Approve Claim",
-                        confirmVariant: "primary",
-                        withNote: true,
-                        noteRequired: false,
-                        notePlaceholder: "Board resolution / approval note for CEO...",
-                        noteLabel: "Board Note for CEO",
-                        onConfirm: async (note) => {
-                          await handleTransition(claim.id, "further_approval_approved", note, "ceo");
-                          if (onClose) onClose();
-                        },
-                      })
-                    }
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 size={14} /> Approve — Return to CEO
-                  </button>
-                )}
-
-                {(currentStatus === "further_approval" || currentStatus === "further_approval_approved") && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPendingConfirm({
-                        title: "Further Approval - Reject",
-                        message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
-                        confirmLabel: "Reject — Return to CEO",
-                        confirmVariant: "danger",
-                        withNote: true,
-                        noteRequired: false,
-                        notePlaceholder: "Reason for Board rejection...",
-                        noteLabel: "Rejection Reason for CEO",
-                        onConfirm: async (note) => {
-                          await handleTransition(claim.id, "further_approval_rejected", note, "ceo");
-                          if (onClose) onClose();
-                        },
-                      })
-                    }
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <XCircle size={14} /> Reject — Return to CEO
-                  </button>
-                )}
-
-                {(currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPendingConfirm({
-                        title: "Reopen Board Review",
-                        message: `Are you sure you want to reopen Board review for claim ${refNo}? Status will return to Further Approval.`,
-                        confirmLabel: "Reopen Review",
-                        confirmVariant: "warning",
-                        withNote: true,
-                        noteRequired: false,
-                        notePlaceholder: "Reason for reopening Board review...",
-                        noteLabel: "Review Note",
-                        onConfirm: async (note) => {
-                          await handleTransition(claim.id, "further_approval", note, "chairman");
-                          if (onClose) onClose();
-                        },
-                      })
-                    }
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <RotateCcw size={14} /> Reopen Board Review
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Further Approval - Approve",
+                      message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO for payment authorization.`,
+                      confirmLabel: "Approve Claim",
+                      confirmVariant: "primary",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Board resolution / approval note for CEO...",
+                      noteLabel: "Board Note for CEO",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "further_approval_approved", note, "ceo");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 size={14} /> Approve — Return to CEO
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Further Approval - Reject",
+                      message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
+                      confirmLabel: "Reject — Return to CEO",
+                      confirmVariant: "danger",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Reason for Board rejection...",
+                      noteLabel: "Rejection Reason for CEO",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "further_approval_rejected", note, "ceo");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <XCircle size={14} /> Reject — Return to CEO
+                </button>
               </>
             )}
 
