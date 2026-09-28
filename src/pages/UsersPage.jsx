@@ -4,10 +4,13 @@ import { Plus, FileEdit, Trash2, X } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { ROLES } from "../constants/menu";
 import ConfirmModal from "../components/ui/ConfirmModal";
+import Pagination from "../components/ui/Pagination";
 
 export default function UsersPage() {
   const { users, role, handleAddUser, handleUpdateUser, handleDeleteUser } = useApp();
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
@@ -15,6 +18,7 @@ export default function UsersPage() {
   const [editForm, setEditForm] = useState({ name: "", email: "", username: "", role: "user", password: "" });
 
   const isSuperAdmin = role === "super_admin";
+  const pagedUsers = users.slice((page - 1) * pageSize, page * pageSize);
 
   const submitAdd = (e) => {
     e.preventDefault();
@@ -103,7 +107,7 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {users.map((u) => {
+              {pagedUsers.map((u) => {
                 const roleInfo = ROLES.find((r) => r.id === u.role);
                 return (
                   <tr key={u.username} className="hover:bg-slate-50 transition-colors font-medium">
@@ -141,6 +145,13 @@ export default function UsersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          setPage={setPage}
+          totalItems={users.length}
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+        />
       </div>
 
       {/* Delete User Confirmation Modal */}
