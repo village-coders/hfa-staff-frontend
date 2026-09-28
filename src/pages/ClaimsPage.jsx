@@ -150,7 +150,7 @@ export default function ClaimsPage() {
               <table className="w-full text-xs whitespace-nowrap">
                 <thead>
                   <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                    <th className="text-left px-5 py-3 w-36">Claim ID</th>
+                    <th className="text-left px-5 py-3 w-36">Company Name</th>
                     <th className="text-left px-5 py-3">Claimant</th>
                     <th className="text-left px-5 py-3">Title</th>
                     <th className="text-left px-5 py-3 w-28">Amount</th>
@@ -162,7 +162,7 @@ export default function ClaimsPage() {
                 <tbody className="divide-y divide-slate-100">
                   {paged.map((c, idx) => (
                     <tr key={c.id || c._id || idx} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-5 py-3.5 font-semibold text-teal-800 whitespace-nowrap">{c.id || c.claimRefNo || c._id}</td>
+                      <td className="px-5 py-3.5 font-semibold text-teal-800 whitespace-nowrap">{c.companyName || c.contactPerson || "—"}</td>
                       <td className="px-5 py-3.5 font-medium text-slate-900 whitespace-nowrap">{c.claimant || c.claimantName || "User"}</td>
                       <td className="px-5 py-3.5 text-slate-700 max-w-[180px] truncate" title={c.title}>{c.title || "General Expense Claim"}</td>
                       <td className="px-5 py-3.5 font-semibold text-slate-900 whitespace-nowrap">{fmtN(c.amount || 0)}</td>

@@ -110,7 +110,7 @@ export default function ClaimTrackingPage() {
       <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 shadow-sm">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {[
-            { label: "Claim ID",    value: claim.id,        mono: true,  teal: true },
+            { label: "Company Name", value: claim.companyName || claim.contactPerson || "—", mono: false, teal: true },
             { label: "Claimant",    value: claim.claimant },
             { label: "Amount",      value: fmtN(claim.amount), large: true },
             { label: "Department",  value: claim.dept || "Operations" },

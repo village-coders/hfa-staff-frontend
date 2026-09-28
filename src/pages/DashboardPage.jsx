@@ -191,7 +191,7 @@ export default function DashboardPage() {
           <table className="w-full text-xs whitespace-nowrap">
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <th className="text-left px-5 py-3.5 whitespace-nowrap">Claim ID</th>
+                <th className="text-left px-5 py-3.5 whitespace-nowrap">Company Name</th>
                 <th className="text-left px-5 py-3.5 whitespace-nowrap">Claimant</th>
                 <th className="text-left px-5 py-3.5 whitespace-nowrap">Department</th>
                 <th className="text-left px-5 py-3.5 whitespace-nowrap">Amount</th>

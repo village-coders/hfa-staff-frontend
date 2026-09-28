@@ -59,7 +59,7 @@ export default function DashboardClaimRow({ claim, role, onTransition, onOpenFee
         className="px-5 py-4 font-semibold text-teal-800 cursor-pointer"
         onClick={() => navigate(VIEW_TO_PATH["all-claims-list"])}
       >
-        {claim.id || claim.claimRefNo || claim._id}
+        {claim.companyName || claim.contactPerson || "—"}
       </td>
       <td className="px-5 py-4 font-medium text-slate-900">{claim.claimant || claim.claimantName || "User"}</td>
       <td className="px-5 py-4 text-slate-600">{claim.dept || "Operations"}</td>
