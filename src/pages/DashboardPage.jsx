@@ -26,9 +26,13 @@ export default function DashboardPage() {
     c.total = claimStats?.totalClaims || claims.length;
 
     // Instant stats from server aggregation pipeline
-    if (claimStats?.countsByStatus) {
-      Object.entries(claimStats.countsByStatus).forEach(([st, cnt]) => {
-        if (!c[st] || c[st] === 0) c[st] = cnt;
+    if (claimStats) {
+      Object.keys(STATUS).forEach((st) => {
+        if (claimStats[st] !== undefined) {
+          c[st] = claimStats[st];
+        } else if (claimStats.countsByStatus && claimStats.countsByStatus[st] !== undefined) {
+          c[st] = claimStats.countsByStatus[st];
+        }
       });
     }
 

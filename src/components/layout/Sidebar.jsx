@@ -106,7 +106,7 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
 
   // Sidebar badge counts
   const claimCounts = (() => {
-    const isTotalViewer = role === "admin" || role === "financial_officer";
+    const isTotalViewer = role === "admin" || role === "super_admin" || role === "financial_officer" || role === "accountant";
     const list = isTotalViewer ? claims : claims.filter((c) => c.claimant === currentUser || c.claimantName === currentUser);
     const counts = {
       "manage-claim-sheet": null,
@@ -157,6 +157,8 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
           } else {
             counts[it.key] = claims.filter((c) => c.status === it.status).length;
           }
+        } else if (role === "accountant") {
+          counts[it.key] = claims.filter((c) => c.status === it.status).length;
         } else if (role === "ceo") {
           if (it.key === "verified-list") {
             counts[it.key] = claims.filter(

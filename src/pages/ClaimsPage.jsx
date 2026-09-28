@@ -75,6 +75,15 @@ export default function ClaimsPage() {
           c.status === "further_approval_approved" ||
           c.status === "further_approval_rejected")
     );
+  } else if (role === "accountant") {
+    filtered = filtered.filter(
+      (c) =>
+        c &&
+        (c.status === "approved_for_payment" ||
+          c.status === "paid" ||
+          c.claimant === currentUser ||
+          c.claimantName === currentUser)
+    );
   }
 
   if (search) {
