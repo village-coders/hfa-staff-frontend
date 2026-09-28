@@ -170,7 +170,7 @@ export function AppProvider({ children }) {
 
       if (role === "super_admin" || role === "admin") {
         try {
-          const usersRes = await fetch(`${API_BASE_URL}/users`, { headers });
+          const usersRes = await fetch(`${API_BASE_URL}/users?limit=1000`, { headers });
           if (checkAuth(usersRes)) {
             const d = await usersRes.json();
             const list = extractList(d);
