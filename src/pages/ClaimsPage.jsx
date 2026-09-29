@@ -146,44 +146,121 @@ export default function ClaimsPage() {
           <EmptyState icon={item.icon} title="Nothing here yet" subtitle={`No claims currently sit in ${item.label.toLowerCase()}.`} />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* ── Mobile card list ── */}
+            <div className="sm:hidden divide-y divide-slate-100">
+              {paged.map((c, idx) => {
+                const cRef = c.id || c.claimRefNo || "Claim";
+                return (
+                  <div
+                    key={c.id || c._id || idx}
+                    onClick={() => openClaimDetails(c)}
+                    className="p-4 cursor-pointer active:bg-teal-50/60 transition-colors"
+                  >
+                    {/* Top: ID + Status */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg text-xs border border-slate-200">
+                        {cRef}
+                      </span>
+                      <StatusBadge status={c.status || "new"} />
+                    </div>
+
+                    {/* Company */}
+                    <p className="text-sm font-bold text-teal-800 truncate mb-0.5">
+                      {c.companyName || c.contactPerson || "—"}
+                    </p>
+
+                    {/* Claimant + Date */}
+                    <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+                      <span className="font-medium text-slate-700">{c.claimant || c.claimantName || "User"}</span>
+                      <span>{c.date || "N/A"}</span>
+                    </div>
+
+                    {/* Amount + Action */}
+                    <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+                      <span className="text-base font-black text-slate-900">{fmtN(c.amount || 0)}</span>
+                      <ClaimActions
+                        claim={c}
+                        view={viewKey}
+                        role={role}
+                        onTransition={handleTransition}
+                        onOpenFeedback={setFeedbackClaim}
+                        onDelete={handleDeleteClaim}
+                        onViewDetails={(claim) => openClaimDetails(claim)}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── Desktop table ── */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-xs whitespace-nowrap">
                 <thead>
                   <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                    <th className="text-left px-5 py-3 w-36">Company Name</th>
-                    <th className="text-left px-5 py-3">Claimant</th>
-                    <th className="text-left px-5 py-3">Title</th>
-                    <th className="text-left px-5 py-3 w-28">Amount</th>
-                    <th className="text-left px-5 py-3 w-28">Date</th>
-                    <th className="text-left px-3 py-3 w-32">Status</th>
-                    <th className="text-center px-3 py-3 w-16">Action</th>
+                    <th className="text-left px-4 py-3 w-32 whitespace-nowrap">Claim ID</th>
+                    <th className="text-left px-4 py-3 min-w-[220px]">Company Name</th>
+                    <th className="text-left px-4 py-3 w-40 whitespace-nowrap">Claimant</th>
+                    <th className="text-left px-4 py-3 w-28 whitespace-nowrap">Amount</th>
+                    <th className="text-left px-4 py-3 w-28 whitespace-nowrap">Date</th>
+                    <th className="text-left px-3 py-3 w-32 whitespace-nowrap">Status</th>
+                    <th className="text-center px-3 py-3 w-16 whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {paged.map((c, idx) => (
-                    <tr key={c.id || c._id || idx} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-5 py-3.5 font-semibold text-teal-800 whitespace-nowrap">{c.companyName || c.contactPerson || "—"}</td>
-                      <td className="px-5 py-3.5 font-medium text-slate-900 whitespace-nowrap">{c.claimant || c.claimantName || "User"}</td>
-                      <td className="px-5 py-3.5 text-slate-700 max-w-[180px] truncate" title={c.title}>{c.title || "General Expense Claim"}</td>
-                      <td className="px-5 py-3.5 font-semibold text-slate-900 whitespace-nowrap">{fmtN(c.amount || 0)}</td>
-                      <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">{c.date || "N/A"}</td>
-                      <td className="px-3 py-3.5"><StatusBadge status={c.status || "new"} /></td>
-                      <td className="px-3 py-3.5 text-center">
-                        <ClaimActions
-                          claim={c}
-                          view={viewKey}
-                          role={role}
-                          onTransition={handleTransition}
-                          onOpenFeedback={setFeedbackClaim}
-                          onDelete={handleDeleteClaim}
-                          onViewDetails={(claim) => openClaimDetails(claim)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {paged.map((c, idx) => {
+                    const cRef = c.id || c.claimRefNo || "Claim";
+                    return (
+                      <tr
+                        key={c.id || c._id || idx}
+                        onClick={() => openClaimDetails(c)}
+                        className="hover:bg-teal-50/40 transition-colors cursor-pointer group"
+                        title="Click to view full claim details"
+                      >
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span
+                            className="font-mono font-bold text-slate-800 bg-slate-100 group-hover:bg-teal-100 group-hover:text-teal-900 px-2.5 py-1 rounded-lg text-xs border border-slate-200 transition-colors inline-block select-all"
+                            title={`Claim ID: ${cRef}`}
+                          >
+                            {cRef}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 font-semibold text-teal-800 min-w-[220px]">
+                          {c.companyName || c.contactPerson || "—"}
+                        </td>
+                        <td className="px-4 py-3.5 font-medium text-slate-900 whitespace-nowrap">
+                          {c.claimant || c.claimantName || "User"}
+                        </td>
+                        <td className="px-4 py-3.5 font-semibold text-slate-900 whitespace-nowrap">
+                          {fmtN(c.amount || 0)}
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">
+                          {c.date || "N/A"}
+                        </td>
+                        <td className="px-3 py-3.5 whitespace-nowrap">
+                          <StatusBadge status={c.status || "new"} />
+                        </td>
+                        <td
+                          className="px-3 py-3.5 text-center whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ClaimActions
+                            claim={c}
+                            view={viewKey}
+                            role={role}
+                            onTransition={handleTransition}
+                            onOpenFeedback={setFeedbackClaim}
+                            onDelete={handleDeleteClaim}
+                            onViewDetails={(claim) => openClaimDetails(claim)}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+
             <Pagination
               page={page}
               setPage={setPage}

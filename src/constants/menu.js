@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FileEdit, FilePlus2, BadgeCheck, CircleDollarSign,
   Building, CheckCircle2, Clock3, XCircle, Package, PackagePlus, PlusCircle,
-  UserIcon, Wallet, Landmark, Calculator, ShieldCheck, Building2
+  UserIcon, Wallet, Landmark, Calculator, ShieldCheck, Building2, Trash2
 } from "lucide-react";
 
 // Re-export UserIcon for use elsewhere
@@ -27,6 +27,7 @@ export const CLAIM_ITEMS = [
   { key: "paid-list", label: "Paid List", icon: CheckCircle2, status: "paid" },
   { key: "pending-claim-list", label: "Pending Claim List", icon: Clock3, status: "pending" },
   { key: "rejected-claim-list", label: "Rejected Claim List", icon: XCircle, status: "rejected" },
+  { key: "deleted-claim-list", label: "Trash / Deleted Claims", icon: Trash2, status: "deleted" },
 ];
 
 export const ASSET_ITEMS = [
@@ -41,7 +42,7 @@ export const MENU_ACCESS = {
   ceo:               ["dashboard", "all-claims-list", "verified-list", "further-approval", "track-claim"],
   accountant:        ["dashboard", "manage-claim-sheet", "all-claims-list", "approved-for-payment", "paid-list", "manage-asset", "track-claim"],
   admin:             ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "track-claim"],
-  super_admin:       ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "users", "reports", "track-claim"],
+  super_admin:       ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "deleted-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "users", "reports", "track-claim"],
   chairman:          ["dashboard", "further-approval", "track-claim"],
 };
 
@@ -56,6 +57,7 @@ export const VIEW_TITLES = {
   "paid-list": "Paid List",
   "pending-claim-list": "Pending Claim List",
   "rejected-claim-list": "Rejected Claim List",
+  "deleted-claim-list": "Trash / Deleted Claims",
   "manage-asset": "Manage Asset",
   "new-asset-list": "New Asset List",
   "add-new-asset": "Add New Asset",
@@ -76,6 +78,7 @@ export const PATH_TO_VIEW = {
   "/claims/paid": "paid-list",
   "/claims/pending": "pending-claim-list",
   "/claims/rejected": "rejected-claim-list",
+  "/claims/deleted": "deleted-claim-list",
   "/claims/track": "track-claim",
   "/assets": "manage-asset",
   "/assets/new-list": "new-asset-list",
@@ -96,6 +99,7 @@ export const VIEW_TO_PATH = {
   "paid-list": "/claims/paid",
   "pending-claim-list": "/claims/pending",
   "rejected-claim-list": "/claims/rejected",
+  "deleted-claim-list": "/claims/deleted",
   "track-claim": "/claims/track",
   "manage-asset": "/assets",
   "new-asset-list": "/assets/new-list",

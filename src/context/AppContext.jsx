@@ -23,6 +23,8 @@ export function AppProvider({ children }) {
   const currentUser = loggedInUser?.name || loggedInUser?.username || "";
 
   const [claims, setClaims] = useState([]);
+  const [deletedClaims, setDeletedClaims] = useState([]);
+  const [loadingDeleted, setLoadingDeleted] = useState(false);
   const [claimStats, setClaimStats] = useState(null);
   const [assets, setAssets] = useState([]);
   const [users, setUsers] = useState([]);
@@ -51,19 +53,34 @@ export function AppProvider({ children }) {
   const openClaimDetails = async (claim) => {
     if (!claim) return;
     setSelectedClaimForDetails(claim);
-    if (!claim.items || claim.items.length === 0) {
-      try {
-        const id = claim._id || claim.id;
-        const res = await fetch(`${API_BASE_URL}/claims/${id}`, { headers: apiHeaders() });
-        if (res.ok) {
-          const full = await res.json();
-          if (full.data) {
-            setSelectedClaimForDetails((prev) => ({ ...prev, ...full.data }));
-          }
+    try {
+      const id = claim._id || claim.id;
+      const res = await fetch(`${API_BASE_URL}/claims/${id}`, { headers: apiHeaders() });
+      if (res.ok) {
+        const full = await res.json();
+        const data = full.data || full.claim || full;
+        if (data) {
+          setSelectedClaimForDetails((prev) => ({
+            ...prev,
+            ...data,
+            id: data.claimRefNo || data.claimNumber || data.id || prev?.id || id,
+            claimant: data.claimantName || (data.claimantId && (data.claimantId.fullName || data.claimantId.name || data.claimantId.username)) || prev?.claimant || "User",
+            attachments: (Array.isArray(data.attachments) && data.attachments.length > 0)
+              ? data.attachments
+              : (Array.isArray(data.files) && data.files.length > 0)
+              ? data.files
+              : (Array.isArray(prev?.attachments) && prev.attachments.length > 0)
+              ? prev.attachments
+              : (Array.isArray(claim.attachments) ? claim.attachments : []),
+            items: (Array.isArray(data.items) && data.items.length > 0) ? data.items : (prev?.items || claim.items || []),
+            reasons: (Array.isArray(data.reasons) && data.reasons.length > 0) ? data.reasons : (prev?.reasons || claim.reasons || []),
+            note: data.note || data.notes || data.officerNote || prev?.note || claim.note || "",
+            status: data.status ? (data.status.toLowerCase() === "new" ? "submitted" : data.status.toLowerCase()) : (prev?.status || claim.status || "submitted"),
+          }));
         }
-      } catch (e) {
-        console.error("Failed to load full claim details:", e);
       }
+    } catch (e) {
+      console.error("Failed to load full claim details:", e);
     }
   };
   const closeClaimDetails = () => setSelectedClaimForDetails(null);
@@ -182,6 +199,40 @@ export function AppProvider({ children }) {
               username: u.username || "",
             }));
             setUsers(mapped);
+          }
+        } catch { /* keep empty */ }
+      }
+
+      if (role === "super_admin") {
+        try {
+          const delRes = await fetch(`${API_BASE_URL}/claims?deleted=true&limit=5000`, { headers });
+          if (checkAuth(delRes)) {
+            const d = await delRes.json();
+            const list = extractList(d);
+            const mapped = list.map((c) => ({
+              _id: c._id,
+              id: c.claimRefNo || c.claimNumber || c.id || c._id,
+              claimant: c.claimantName || (c.claimantId && (c.claimantId.fullName || c.claimantId.name || c.claimantId.username)) || "User",
+              dept: c.department || "Operations",
+              title: c.claimType ? `${c.claimType} Claim` : c.title || "General Expense Claim",
+              claimType: c.claimType || "Staff Expense",
+              companyName: c.companyName || "Halal Food Authority",
+              contactPerson: c.contactPerson || "",
+              contactEmail: c.contactEmail || "",
+              reasons: c.reasons || [],
+              items: c.items || [],
+              subtotals: c.subtotals || null,
+              attachments: c.attachments || c.files || [],
+              amount: (c.subtotals && c.subtotals.grandTotal) || c.totalClaimAmount || c.amount || 0,
+              date: safeFormatDate(c.filingDate || c.claimDate || c.createdAt || c.date || c.updatedAt),
+              deletedAt: safeFormatDate(c.deletedAt || c.updatedAt),
+              deletedBy: c.deletedBy || "super_admin",
+              previousStatus: c.previousStatus || "submitted",
+              status: c.status ? (c.status.toLowerCase() === "new" ? "submitted" : c.status.toLowerCase()) : "submitted",
+              note: c.officerNote || c.feedbackNote || c.note || "",
+              history: c.history || [],
+            }));
+            setDeletedClaims(mapped);
           }
         } catch { /* keep empty */ }
       }
@@ -415,18 +466,138 @@ export function AppProvider({ children }) {
     }
   };
 
+  const fetchDeletedClaims = async () => {
+    if (!loggedInUser || role !== "super_admin") return;
+    setLoadingDeleted(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/claims?deleted=true&limit=5000`, { headers: apiHeaders() });
+      if (res.ok) {
+        const d = await res.json();
+        const list = extractList(d);
+        const mapped = list.map((c) => ({
+          _id: c._id,
+          id: c.claimRefNo || c.claimNumber || c.id || c._id,
+          claimant: c.claimantName || (c.claimantId && (c.claimantId.fullName || c.claimantId.name || c.claimantId.username)) || "User",
+          dept: c.department || "Operations",
+          title: c.claimType ? `${c.claimType} Claim` : c.title || "General Expense Claim",
+          claimType: c.claimType || "Staff Expense",
+          companyName: c.companyName || "Halal Food Authority",
+          contactPerson: c.contactPerson || "",
+          contactEmail: c.contactEmail || "",
+          reasons: c.reasons || [],
+          items: c.items || [],
+          subtotals: c.subtotals || null,
+          attachments: c.attachments || c.files || [],
+          amount: (c.subtotals && c.subtotals.grandTotal) || c.totalClaimAmount || c.amount || 0,
+          date: safeFormatDate(c.filingDate || c.claimDate || c.createdAt || c.date || c.updatedAt),
+          deletedAt: safeFormatDate(c.deletedAt || c.updatedAt),
+          deletedBy: c.deletedBy || "super_admin",
+          previousStatus: c.previousStatus || "submitted",
+          status: c.status ? (c.status.toLowerCase() === "new" ? "submitted" : c.status.toLowerCase()) : "submitted",
+          note: c.officerNote || c.feedbackNote || c.note || "",
+          history: c.history || [],
+        }));
+        setDeletedClaims(mapped);
+      }
+    } catch (e) {
+      console.error("Failed to fetch deleted claims:", e);
+    } finally {
+      setLoadingDeleted(false);
+    }
+  };
+
   const handleDeleteClaim = async (id) => {
     const claimObj = claims.find((c) => c.id === id || c._id === id);
     const dbId = claimObj?._id || id;
-    setClaims((prev) => prev.filter((c) => c.id !== id));
-    showToast("Claim record deleted.", "info");
+    const refNo = claimObj?.id || id;
+
+    // Optimistically remove from active claims
+    setClaims((prev) => prev.filter((c) => c.id !== id && c._id !== dbId));
+
+    if (claimObj) {
+      const trashed = {
+        ...claimObj,
+        deletedAt: new Date().toISOString().slice(0, 10),
+        deletedBy: currentUser || "super_admin",
+        previousStatus: claimObj.status,
+      };
+      setDeletedClaims((prev) => [trashed, ...prev]);
+    }
+
+    showToast(`Claim ${refNo} moved to Trash. You can restore it from Deleted Claims.`, "info");
+
     try {
-      await fetch(`${API_BASE_URL}/claims/${dbId}`, {
+      const res = await fetch(`${API_BASE_URL}/claims/${dbId}`, {
         method: "DELETE",
         headers: apiHeaders(),
       });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        showToast(errJson.message || "Failed to delete claim on server.", "error");
+      }
     } catch (e) {
       console.error("Delete claim error:", e);
+    }
+  };
+
+  const handleRestoreClaim = async (id) => {
+    const claimObj = deletedClaims.find((c) => c.id === id || c._id === id);
+    const dbId = claimObj?._id || id;
+    const refNo = claimObj?.id || id;
+
+    // Optimistic removal from deletedClaims
+    setDeletedClaims((prev) => prev.filter((c) => c.id !== id && c._id !== dbId));
+
+    // Restore to active claims with restored status
+    if (claimObj) {
+      const restored = {
+        ...claimObj,
+        status: claimObj.previousStatus || "submitted",
+      };
+      setClaims((prev) => [restored, ...prev]);
+    }
+
+    showToast(`Claim ${refNo} restored successfully to active workflow!`, "success");
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/claims/${dbId}/restore`, {
+        method: "POST",
+        headers: apiHeaders(),
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        showToast(errJson.message || "Failed to restore claim.", "error");
+        fetchDeletedClaims();
+      }
+    } catch (e) {
+      console.error("Restore claim error:", e);
+      showToast("Network error restoring claim.", "error");
+      fetchDeletedClaims();
+    }
+  };
+
+  const handlePurgeClaim = async (id) => {
+    const claimObj = deletedClaims.find((c) => c.id === id || c._id === id);
+    const dbId = claimObj?._id || id;
+    const refNo = claimObj?.id || id;
+
+    setDeletedClaims((prev) => prev.filter((c) => c.id !== id && c._id !== dbId));
+    showToast(`Claim ${refNo} permanently purged from database.`, "info");
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/claims/${dbId}/purge`, {
+        method: "DELETE",
+        headers: apiHeaders(),
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        showToast(errJson.message || "Failed to purge claim.", "error");
+        fetchDeletedClaims();
+      }
+    } catch (e) {
+      console.error("Purge claim error:", e);
+      showToast("Network error purging claim.", "error");
+      fetchDeletedClaims();
     }
   };
 
@@ -453,13 +624,15 @@ export function AppProvider({ children }) {
           reasons: serverClaim.reasons || claimPayload.reasons || [],
           items: serverClaim.items || claimPayload.items || [],
           subtotals: serverClaim.subtotals || claimPayload.subtotals || null,
-          attachments: serverClaim.attachments || claimPayload.attachments || [],
+          attachments: (serverClaim.attachments && serverClaim.attachments.length > 0)
+            ? serverClaim.attachments
+            : (claimPayload.attachments || []),
           amount: (serverClaim.subtotals && serverClaim.subtotals.grandTotal) || claimPayload.amount || 0,
           date: serverClaim.filingDate
             ? new Date(serverClaim.filingDate).toISOString().slice(0, 10)
             : new Date().toISOString().slice(0, 10),
           status: serverClaim.status ? (serverClaim.status.toLowerCase() === "new" ? "submitted" : serverClaim.status.toLowerCase()) : "submitted",
-          note: serverClaim.officerNote || "",
+          note: serverClaim.note || serverClaim.notes || serverClaim.officerNote || claimPayload.note || "",
         };
         setClaims((prev) => [mappedClaim, ...prev]);
         showToast("Claim created and submitted successfully!", "success");
@@ -696,6 +869,11 @@ export function AppProvider({ children }) {
     handleLogout,
     handleTransition,
     handleDeleteClaim,
+    deletedClaims,
+    loadingDeleted,
+    fetchDeletedClaims,
+    handleRestoreClaim,
+    handlePurgeClaim,
     handleSubmitClaim,
     handleAddAsset,
     handleDeleteAsset,

@@ -131,31 +131,31 @@ export default function DashboardPage() {
           className="absolute inset-0 opacity-10 pointer-events-none"
           style={{ backgroundImage: "radial-gradient(circle at 20% 50%, #14B8A6 0%, transparent 50%), radial-gradient(circle at 80% 20%, #0891B2 0%, transparent 50%)" }}
         />
-        <div className="relative z-10 p-7 flex flex-col md:flex-row items-center justify-between gap-5">
+        <div className="relative z-10 p-5 sm:p-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <p className="text-teal-200 text-xs font-semibold uppercase tracking-widest mb-1">Internal Financial Record System</p>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Welcome back, {currentUser}!</h2>
-            <p className="text-sm text-teal-100/80 mt-1 font-normal">
-              Click any statistic card below to jump directly to its management page.
+            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Welcome back, {currentUser}!</h2>
+            <p className="text-xs sm:text-sm text-teal-100/80 mt-1 font-normal">
+              Tap any card below to jump to its management page.
             </p>
             {role === "super_admin" && (
               <button
                 onClick={() => navigate("/reports")}
-                className="mt-3.5 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold border border-white/20 backdrop-blur-sm transition-all shadow-sm cursor-pointer"
+                className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold border border-white/20 backdrop-blur-sm transition-all shadow-sm cursor-pointer"
               >
                 <BarChart3 size={15} className="text-teal-200" />
-                <span>View Transaction Reports & Charts</span>
+                <span>View Reports & Charts</span>
                 <ArrowRight size={13} />
               </button>
             )}
           </div>
-          <div className="flex items-center gap-3 px-5 py-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <ShieldCheck size={18} className="text-teal-200" />
+          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm self-start">
+            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+              <ShieldCheck size={16} className="text-teal-200" />
             </div>
             <div>
               <p className="text-[10px] text-teal-100 uppercase tracking-widest font-semibold">Active Role</p>
-              <p className="text-sm font-bold text-white uppercase">{ROLES.find((r) => r.id === role)?.label || role}</p>
+              <p className="text-xs font-bold text-white uppercase">{ROLES.find((r) => r.id === role)?.label || role}</p>
             </div>
           </div>
         </div>
@@ -175,7 +175,7 @@ export default function DashboardPage() {
       {/* Recent Activity Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
         <div
-          className="px-6 py-4 rounded-t-2xl border-b border-slate-200 flex items-center justify-between"
+          className="px-4 sm:px-6 py-4 rounded-t-2xl border-b border-slate-200 flex items-center justify-between"
           style={{ background: "linear-gradient(90deg, #007A87 0%, #054D66 100%)" }}
         >
           <h3 className="font-semibold text-sm text-white">Recent Claim Activity</h3>
@@ -183,40 +183,47 @@ export default function DashboardPage() {
             onClick={() => navigate("/claims")}
             className="text-xs font-semibold text-teal-100 hover:text-white flex items-center gap-1 cursor-pointer"
           >
-            <span>View All Claims</span>
+            <span>View All</span>
             <ArrowRight size={13} />
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs whitespace-nowrap">
-            <thead>
-              <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                <th className="text-left px-5 py-3.5 whitespace-nowrap">Company Name</th>
-                <th className="text-left px-5 py-3.5 whitespace-nowrap">Claimant</th>
-                <th className="text-left px-5 py-3.5 whitespace-nowrap">Department</th>
-                <th className="text-left px-5 py-3.5 whitespace-nowrap">Amount</th>
-                <th className="text-left px-5 py-3.5 whitespace-nowrap">Date</th>
-                <th className="text-left px-3 py-3.5 w-32 whitespace-nowrap">Status</th>
-                <th className="text-center px-3 py-3.5 w-16 whitespace-nowrap">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {recent.map((c) => (
-                <DashboardClaimRow
-                  key={c.id}
-                  claim={c}
-                  role={role}
-                  onNavigate={handleNavigateView}
-                  onTrack={() => handleTrackClaim(c)}
-                  onTransition={handleTransition}
-                  onOpenFeedback={(claim) => { setFeedbackClaim(claim); setFeedbackText(""); }}
-                  onDelete={handleDeleteClaim}
-                  onViewDetails={(claim) => setSelectedClaimForDetails(claim)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+
+        {recent.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-10 font-medium">No recent activity.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs whitespace-nowrap">
+              {/* Desktop-only header */}
+              <thead className="hidden sm:table-header-group">
+                <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <th className="text-left px-5 py-3.5 whitespace-nowrap w-24">Claim ID</th>
+                  <th className="text-left px-5 py-3.5 whitespace-nowrap">Company Name</th>
+                  <th className="text-left px-5 py-3.5 whitespace-nowrap">Claimant</th>
+                  <th className="text-left px-5 py-3.5 whitespace-nowrap">Department</th>
+                  <th className="text-left px-5 py-3.5 whitespace-nowrap">Amount</th>
+                  <th className="text-left px-5 py-3.5 whitespace-nowrap">Date</th>
+                  <th className="text-left px-3 py-3.5 w-32 whitespace-nowrap">Status</th>
+                  <th className="text-center px-3 py-3.5 w-16 whitespace-nowrap">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recent.map((c) => (
+                  <DashboardClaimRow
+                    key={c.id}
+                    claim={c}
+                    role={role}
+                    onNavigate={handleNavigateView}
+                    onTrack={() => handleTrackClaim(c)}
+                    onTransition={handleTransition}
+                    onOpenFeedback={(claim) => { setFeedbackClaim(claim); setFeedbackText(""); }}
+                    onDelete={handleDeleteClaim}
+                    onViewDetails={(claim) => setSelectedClaimForDetails(claim)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Claim Details Modal */}

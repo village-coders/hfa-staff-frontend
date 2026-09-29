@@ -12,6 +12,7 @@ import AssetsPage from "./pages/AssetsPage";
 import AddNewAssetPage from "./pages/AddNewAssetPage";
 import UsersPage from "./pages/UsersPage";
 import ReportsPage from "./pages/ReportsPage";
+import DeletedClaimsPage from "./pages/DeletedClaimsPage";
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/claims/paid" element={<ClaimsPage />} />
             <Route path="/claims/pending" element={<ClaimsPage />} />
             <Route path="/claims/rejected" element={<ClaimsPage />} />
+            <Route path="/claims/deleted" element={<DeletedClaimsPage />} />
             <Route path="/claims/track" element={<ClaimTrackingPage />} />
 
             {/* Assets Routes */}

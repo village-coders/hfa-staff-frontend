@@ -92,7 +92,7 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
   const [assetOpen, setAssetOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { openClaimSheet, openAddAsset, currentUser, claimStats } = useApp();
+  const { openClaimSheet, openAddAsset, currentUser, claimStats, deletedClaims } = useApp();
 
   const handleItemClick = (key) => {
     navigate(VIEW_TO_PATH[key] || "/dashboard");
@@ -111,6 +111,7 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
     const counts = {
       "manage-claim-sheet": null,
       "all-claims-list": isTotalViewer ? (claimStats?.totalClaims || claims.length) : list.length,
+      "deleted-claim-list": deletedClaims?.length || 0,
     };
     list.forEach((c) => {
       const item = CLAIM_ITEMS.find((it) => {

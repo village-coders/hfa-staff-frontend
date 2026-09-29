@@ -123,7 +123,7 @@ export default function Topbar({ role, setMobileOpen, notifications, onMarkAllRe
 
   return (
     <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 sm:px-8 py-3.5 shadow-sm flex items-center justify-between">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={() => {
             if (window.innerWidth >= 1024) {
@@ -132,14 +132,14 @@ export default function Topbar({ role, setMobileOpen, notifications, onMarkAllRe
               setMobileOpen((v) => !v);
             }
           }}
-          className="p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
+          className="p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200 flex-shrink-0"
           title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {sidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
         </button>
-        <div>
-          <h1 className="font-bold text-lg text-slate-900 leading-tight">{viewTitle}</h1>
-          <p className="text-xs text-slate-500 font-normal">Welcome back, {currentUser}</p>
+        <div className="min-w-0">
+          <h1 className="font-bold text-base sm:text-lg text-slate-900 leading-tight truncate">{viewTitle}</h1>
+          <p className="text-xs text-slate-500 font-normal hidden xs:block truncate">Welcome back, {currentUser}</p>
         </div>
       </div>
 

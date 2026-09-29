@@ -48,7 +48,7 @@ export default function AppLayout() {
           setSidebarCollapsed={setSidebarCollapsed}
         />
 
-        <main className="p-4 sm:p-8 flex-1 overflow-y-auto">
+        <main className="p-3 sm:p-6 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

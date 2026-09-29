@@ -1,340 +1,121 @@
-import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { MoreVertical, Activity, CheckCircle2 } from "lucide-react";
+import React from "react";
 import StatusBadge from "../ui/StatusBadge";
 import { fmtN } from "../../constants/theme";
-import { VIEW_TO_PATH } from "../../constants/menu";
-import ConfirmModal from "../ui/ConfirmModal";
-import { useApp } from "../../context/AppContext";
+import ClaimActions from "./ClaimActions";
 
-export default function DashboardClaimRow({ claim, role, onTransition, onOpenFeedback, onDelete }) {
-  const { transitioningId } = useApp();
-  const [open, setOpen] = useState(false);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
-  const [pendingConfirm, setPendingConfirm] = useState(null);
-  const ref = useRef(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target) && !e.target.closest(".action-popup-menu")) {
-        setOpen(false);
-      }
-    };
-    if (open) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  useEffect(() => {
-    const handleScroll = () => setOpen(false);
-    if (open) window.addEventListener("scroll", handleScroll, true);
-    return () => window.removeEventListener("scroll", handleScroll, true);
-  }, [open]);
-
-  const toggleOpen = () => {
-    if (!open && ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
-    }
-    setOpen((v) => !v);
-  };
-
-  const close = () => setOpen(false);
-  const currentStatus = claim.status;
+export default function DashboardClaimRow({
+  claim,
+  role,
+  onTransition,
+  onOpenFeedback,
+  onDelete,
+  onViewDetails,
+}) {
   const refNo = claim.id || claim.claimRefNo || "Claim";
 
-  const requestConfirm = (config) => {
-    close();
-    setPendingConfirm(config);
-  };
-
-  const handleTrack = () => {
-    close();
-    navigate("/claims/track", { state: { claim } });
+  const handleRowClick = () => {
+    if (onViewDetails) onViewDetails(claim);
   };
 
   return (
-    <tr className="hover:bg-teal-50/30 transition-colors">
-      <td
-        className="px-5 py-4 font-semibold text-teal-800 cursor-pointer"
-        onClick={() => navigate(VIEW_TO_PATH["all-claims-list"])}
+    <>
+      {/* ── Desktop table row ── */}
+      <tr
+        onClick={handleRowClick}
+        className="hidden sm:table-row hover:bg-teal-50/40 transition-colors cursor-pointer group"
+        title="Click to view full claim details"
       >
-        {claim.companyName || claim.contactPerson || "—"}
-      </td>
-      <td className="px-5 py-4 font-medium text-slate-900">{claim.claimant || claim.claimantName || "User"}</td>
-      <td className="px-5 py-4 text-slate-600">{claim.dept || "Operations"}</td>
-      <td className="px-5 py-4 font-semibold text-slate-900">{fmtN(claim.amount || 0)}</td>
-      <td className="px-5 py-4 text-slate-500">{claim.date || "N/A"}</td>
-      <td className="px-3 py-4"><StatusBadge status={claim.status || "new"} /></td>
-      <td className="px-3 py-4 text-center">
-        <div className="relative inline-block text-left" ref={ref}>
-          {transitioningId && transitioningId.startsWith(`${claim.id}-`) ? (
-            <div className="w-8 h-8 flex items-center justify-center">
-              <svg className="animate-spin h-5 w-5 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </div>
-          ) : (
-            <button
-              onClick={toggleOpen}
-              className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-            >
-              <MoreVertical size={15} className="text-slate-600" />
-            </button>
-          )}
-          {open && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={close} />
-              <div
-                className="action-popup-menu fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 py-1 overflow-hidden flex flex-col animate-scale-in"
-                style={{ top: dropdownPos.top, right: dropdownPos.right, width: "13rem" }}
-              >
-                <button
-                  onClick={handleTrack}
-                  className="w-full text-left text-xs font-semibold px-4 py-2.5 hover:bg-teal-50 text-teal-700 flex items-center gap-2 transition-colors border-b border-slate-100 cursor-pointer"
-                >
-                  <Activity size={14} /> Track Processing
-                </button>
-
-                {(currentStatus === "submitted" || currentStatus === "new" || currentStatus === "pending") && (role === "financial_officer" || role === "admin" || role === "super_admin") && (
-                  <>
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Verify Claim",
-                          message: `Are you sure you want to verify claim ${refNo}? This will forward it to the CEO.`,
-                          confirmLabel: "Verify Claim",
-                          confirmVariant: "primary",
-                          withNote: true,
-                          notePlaceholder: "Add note for CEO review...",
-                          noteLabel: "Note for CEO Review",
-                          onConfirm: (note) => onTransition(claim.id, "verified", note, "ceo"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Verify
-                    </button>
-                    {(currentStatus === "submitted" || currentStatus === "new") && (
-                      <button
-                        onClick={() => { close(); onOpenFeedback(claim); }}
-                        className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 cursor-pointer"
-                      >
-                        Send Feedback
-                      </button>
-                    )}
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Reject Claim",
-                          message: `Are you sure you want to reject claim ${refNo}?`,
-                          confirmLabel: "Reject Claim",
-                          confirmVariant: "danger",
-                          withNote: true,
-                          notePlaceholder: "Reason for rejection...",
-                          noteLabel: "Rejection Reason",
-                          onConfirm: (note) => onTransition(claim.id, "rejected", note, "user"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
-
-                {(currentStatus === "verified" || currentStatus === "further_approval_approved" || currentStatus === "further_approval_rejected") && (role === "ceo" || role === "admin" || role === "super_admin") && (
-                  <>
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Approve for Payment",
-                          message: `Are you sure you want to approve claim ${refNo} for payment?`,
-                          confirmLabel: "Approve for Payment",
-                          confirmVariant: "primary",
-                          withNote: true,
-                          notePlaceholder: "Payment disbursement instructions for Accountant...",
-                          noteLabel: "Note for Accountant",
-                          onConfirm: (note) => onTransition(claim.id, "approved_for_payment", note, "accountant"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Approve for Payment
-                    </button>
-
-                    {(currentStatus === "verified" || currentStatus === "further_approval_rejected") && (
-                      <button
-                        onClick={() =>
-                          requestConfirm({
-                            title: "Send for Further Approval",
-                            message: `Are you sure you want to send claim ${refNo} to the Board for further approval?`,
-                            confirmLabel: "Send for Further Approval",
-                            confirmVariant: "warning",
-                            withNote: true,
-                            notePlaceholder: "Justification for Board approval...",
-                            noteLabel: "Note for Board Review",
-                            onConfirm: (note) => onTransition(claim.id, "further_approval", note, "chairman"),
-                          })
-                        }
-                        className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-purple-50 text-purple-700 flex items-center gap-2 cursor-pointer"
-                      >
-                        Send for Further Approval
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Return Claim",
-                          message: `Are you sure you want to return claim ${refNo} to the Financial Officer?`,
-                          confirmLabel: "Return Claim",
-                          confirmVariant: "warning",
-                          withNote: true,
-                          notePlaceholder: "Reason for returning to Financial Officer...",
-                          noteLabel: "Return Reason / Note",
-                          onConfirm: (note) => onTransition(claim.id, "submitted", note, "financial_officer"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-medium px-4 py-2 hover:bg-amber-50 text-amber-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Reverse to Fin. Officer
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Reject Claim",
-                          message: `Are you sure you want to reject claim ${refNo}?`,
-                          confirmLabel: "Reject Claim",
-                          confirmVariant: "danger",
-                          withNote: true,
-                          notePlaceholder: "Reason for rejection...",
-                          noteLabel: "Rejection Reason",
-                          onConfirm: (note) => onTransition(claim.id, "rejected", note, "user"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
-
-                {currentStatus === "further_approval" && (role === "chairman" || role === "admin" || role === "super_admin") && (
-                  <>
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Further Approval - Approve",
-                          message: `Are you sure you want to approve claim ${refNo}? The status will update to Further Approval Approved and return to the CEO.`,
-                          confirmLabel: "Approve Claim",
-                          confirmVariant: "primary",
-                          withNote: true,
-                          notePlaceholder: "Board resolution / approval note for CEO...",
-                          noteLabel: "Board Note for CEO",
-                          onConfirm: (note) => onTransition(claim.id, "further_approval_approved", note, "ceo"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Approve — Return to CEO
-                    </button>
-                    <button
-                      onClick={() =>
-                        requestConfirm({
-                          title: "Further Approval - Reject",
-                          message: `Are you sure you want to reject claim ${refNo}? The status will update to Further Approval Rejected and return to the CEO for review.`,
-                          confirmLabel: "Reject — Return to CEO",
-                          confirmVariant: "danger",
-                          withNote: true,
-                          notePlaceholder: "Reason for rejection...",
-                          noteLabel: "Rejection Reason",
-                          onConfirm: (note) => onTransition(claim.id, "further_approval_rejected", note, "ceo"),
-                        })
-                      }
-                      className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 cursor-pointer"
-                    >
-                      Reject — Return to CEO
-                    </button>
-                  </>
-                )}
-
-                {currentStatus === "approved_for_payment" && (role === "accountant" || role === "admin" || role === "super_admin") && (
-                  <button
-                    onClick={() =>
-                      requestConfirm({
-                        title: "Confirm Payment Disbursed",
-                        message: `Are you sure you want to mark claim ${refNo} as Paid?`,
-                        confirmLabel: "Mark as Paid",
-                        confirmVariant: "primary",
-                        withNote: true,
-                        notePlaceholder: "Transaction reference / payment settlement note...",
-                        noteLabel: "Payment Reference / Note",
-                        onConfirm: (note) => onTransition(claim.id, "paid", note, "user"),
-                      })
-                    }
-                    className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-emerald-50 text-emerald-700 flex items-center gap-2 cursor-pointer"
-                  >
-                    <CheckCircle2 size={14} /> Mark as Paid
-                  </button>
-                )}
-
-                {currentStatus === "pending" && (role === "user" || role === "financial_officer" || role === "admin" || role === "super_admin") && (
-                  <button
-                    onClick={() =>
-                      requestConfirm({
-                        title: "Resubmit Claim",
-                        message: `Are you sure you want to resubmit claim ${refNo}?`,
-                        confirmLabel: "Resubmit",
-                        confirmVariant: "primary",
-                        withNote: true,
-                        notePlaceholder: "Summary of changes / response to feedback...",
-                        noteLabel: "Resubmission Note",
-                        onConfirm: (note) => onTransition(claim.id, "submitted", note, "financial_officer"),
-                      })
-                    }
-                    className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-teal-50 text-teal-700 flex items-center gap-2 cursor-pointer"
-                  >
-                    Resubmit Claim
-                  </button>
-                )}
-
-                {(role === "super_admin" || role === "admin") && (
-                  <button
-                    onClick={() =>
-                      requestConfirm({
-                        title: "Delete Claim Record",
-                        message: `Are you sure you want to delete claim ${refNo}?`,
-                        confirmLabel: "Delete",
-                        confirmVariant: "danger",
-                        onConfirm: () => onDelete(claim.id),
-                      })
-                    }
-                    className="w-full text-left text-xs font-semibold px-4 py-2 hover:bg-rose-50 text-rose-600 flex items-center gap-2 border-t border-slate-100 cursor-pointer"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Dashboard Confirmation Modal */}
-        {pendingConfirm && (
-          <ConfirmModal
-            isOpen={true}
-            title={pendingConfirm.title}
-            message={pendingConfirm.message}
-            confirmLabel={pendingConfirm.confirmLabel}
-            confirmVariant={pendingConfirm.confirmVariant}
-            onConfirm={pendingConfirm.onConfirm}
-            onClose={() => setPendingConfirm(null)}
+        <td className="px-5 py-4 whitespace-nowrap">
+          <span
+            className="font-mono font-bold text-slate-800 bg-slate-100 group-hover:bg-teal-100 group-hover:text-teal-900 px-2.5 py-1 rounded-lg text-xs border border-slate-200 transition-colors inline-block select-all"
+            title={`Claim ID: ${refNo}`}
+          >
+            {refNo}
+          </span>
+        </td>
+        <td className="px-5 py-4 font-semibold text-teal-800 whitespace-nowrap">
+          {claim.companyName || claim.contactPerson || "—"}
+        </td>
+        <td className="px-5 py-4 font-medium text-slate-900 whitespace-nowrap">
+          {claim.claimant || claim.claimantName || "User"}
+        </td>
+        <td className="px-5 py-4 text-slate-600 whitespace-nowrap">
+          {claim.dept || claim.department || "Operations"}
+        </td>
+        <td className="px-5 py-4 font-semibold text-slate-900 whitespace-nowrap">
+          {fmtN(claim.amount || 0)}
+        </td>
+        <td className="px-5 py-4 text-slate-500 whitespace-nowrap">
+          {claim.date || "N/A"}
+        </td>
+        <td className="px-3 py-4 whitespace-nowrap">
+          <StatusBadge status={claim.status || "new"} />
+        </td>
+        <td
+          className="px-3 py-4 text-center whitespace-nowrap"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ClaimActions
+            claim={claim}
+            view="dashboard"
+            role={role}
+            onTransition={onTransition}
+            onOpenFeedback={onOpenFeedback}
+            onDelete={onDelete}
+            onViewDetails={onViewDetails}
           />
-        )}
-      </td>
-    </tr>
+        </td>
+      </tr>
+
+      {/* ── Mobile card ── */}
+      <tr className="sm:hidden">
+        <td colSpan={8} className="px-0 py-0 border-b border-slate-100">
+          <div
+            onClick={handleRowClick}
+            className="p-4 cursor-pointer active:bg-teal-50/60 transition-colors"
+          >
+            {/* Top row: ID + Status */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg text-xs border border-slate-200 inline-block">
+                {refNo}
+              </span>
+              <StatusBadge status={claim.status || "new"} />
+            </div>
+
+            {/* Company name */}
+            <p className="text-sm font-bold text-teal-800 truncate mb-0.5">
+              {claim.companyName || claim.contactPerson || "—"}
+            </p>
+
+            {/* Claimant + Date */}
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+              <span className="font-medium text-slate-700">
+                {claim.claimant || claim.claimantName || "User"}
+              </span>
+              <span>{claim.date || "N/A"}</span>
+            </div>
+
+            {/* Amount + Action */}
+            <div
+              className="flex items-center justify-between"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="text-base font-black text-slate-900">
+                {fmtN(claim.amount || 0)}
+              </span>
+              <ClaimActions
+                claim={claim}
+                view="dashboard"
+                role={role}
+                onTransition={onTransition}
+                onOpenFeedback={onOpenFeedback}
+                onDelete={onDelete}
+                onViewDetails={onViewDetails}
+              />
+            </div>
+          </div>
+        </td>
+      </tr>
+    </>
   );
 }

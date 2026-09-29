@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { createPortal } from "react-dom";
 import {
   X, CheckCircle2, ChevronRight, ChevronLeft, Plus, Trash2,
-  MessageSquare, PlusCircle
+  PlusCircle, Calendar, ShieldCheck, FileText
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { fmtN } from "../constants/theme";
@@ -16,7 +15,7 @@ const WIZARD_STEPS = [
 ];
 
 export default function ManageClaimSheetPage({ onClose: propOnClose }) {
-  const { currentUser, handleSubmitClaim, closeClaimSheet } = useApp();
+  const { currentUser, role, handleSubmitClaim, closeClaimSheet } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -38,18 +37,16 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
   ]);
 
   const [items, setItems] = useState([
-    { id: 1, type: "In Budget", category: "", note: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }
+    { id: 1, type: "In Budget", category: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }
   ]);
 
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [claimNote, setClaimNote] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const fileInputRef = useRef(null);
-
-  const [activeNoteModalItem, setActiveNoteModalItem] = useState(null);
-  const [noteModalText, setNoteModalText] = useState("");
 
   const CATEGORY_OPTIONS = [
     "Underground Ticket", "National Rail Ticket", "Taxi Fare", "Car Hire (inc, fuel)", "Car Millage", "Car Parking", "Fuel", "Air Fare", "Hotel Accommodation", "Lunch/Dinner", "Sundry", "Office Consumables", "Standards & Export Cert", "DHL To Dubai x2 ()", "Cash Advancement", "Other Deductions", "Telephone Expenses", "Audit Fee (External)", "Gym Allowance", "Currency exchange charges", "Charity", "HFF expense", "Rent & Rates", "Service Charges", "Office Expense", "Meeting fee", "Office Cleaning", "Remuneration Payments", "Scholars Fee", "Honorarium payments", "Postage", "Stationary exp", "Computer Repair", "Computer/IT Expense"
@@ -62,7 +59,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
   const updateReason = (id, field, value) => { setReasons(reasons.map((r) => (r.id === id ? { ...r, [field]: value } : r))); };
 
   const addItemRow = () => {
-    setItems([...items, { id: Date.now(), type: "In Budget", category: "", note: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }]);
+    setItems([...items, { id: Date.now(), type: "In Budget", category: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }]);
   };
   const removeItemRow = (id) => { if (items.length > 1) setItems(items.filter((item) => item.id !== id)); };
 
@@ -83,16 +80,29 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
     );
   };
 
-  const openNoteModal = (item) => { setActiveNoteModalItem(item); setNoteModalText(item.note || ""); };
-  const saveNoteModal = () => {
-    if (activeNoteModalItem) updateItem(activeNoteModalItem.id, "note", noteModalText);
-    setActiveNoteModalItem(null); setNoteModalText("");
-  };
-
   const handleDrag = (e) => { e.preventDefault(); e.stopPropagation(); setDragActive(e.type === "dragenter" || e.type === "dragover"); };
   const handleDrop = (e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) addFiles(Array.from(e.dataTransfer.files)); };
   const handleFileInput = (e) => { if (e.target.files && e.target.files[0]) addFiles(Array.from(e.target.files)); };
-  const addFiles = (newFilesList) => { setUploadedFiles((prev) => [...prev, ...newFilesList.map((f) => ({ id: Date.now() + Math.random(), file: f, name: f.name, size: (f.size / 1024).toFixed(1) + " KB" }))]); };
+  
+  const addFiles = (newFilesList) => {
+    setUploadedFiles((prev) => [
+      ...prev,
+      ...newFilesList.map((f) => ({
+        id: Date.now() + Math.random(),
+        file: f,
+        name: f.name,
+        size: (f.size / 1024).toFixed(1) + " KB",
+        docDate: claimDate || new Date().toISOString().slice(0, 10),
+      })),
+    ]);
+  };
+
+  const updateFileDate = (id, newDate) => {
+    setUploadedFiles((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, docDate: newDate } : f))
+    );
+  };
+
   const removeFile = (id) => { setUploadedFiles((prev) => prev.filter((f) => f.id !== id)); };
 
   const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€" };
@@ -169,8 +179,16 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
         cash: parseFloat(i.cash) || 0,
         vat: parseFloat(i.vat) || 0,
         total: parseFloat(i.total) || 0,
-        note: i.note || ""
       })),
+      attachments: uploadedFiles.map(f => ({
+        fileName: f.name,
+        fileSize: f.size,
+        date: f.docDate,
+        uploadDate: f.docDate,
+      })),
+      note: claimNote,
+      notes: claimNote,
+      officerNote: claimNote,
       subtotals: {
         subtotalCard,
         subtotalCash,
@@ -332,17 +350,41 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                 </select>
               </div>
 
+              {/* Automatic Filing Date (Backdatable strictly by Super Admin) */}
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-2">
-                  Filing Date <span className="text-rose-500 font-bold">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    Filing Date <span className="text-rose-500 font-bold">*</span>
+                  </label>
+                  {role === "super_admin" ? (
+                    <span className="text-[10px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200 flex items-center gap-1">
+                      <ShieldCheck size={11} className="text-teal-600" />
+                      
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                      Auto-generated Today
+                    </span>
+                  )}
+                </div>
                 <input
                   type="date"
                   required
                   value={claimDate}
+                  disabled={role !== "super_admin"}
                   onChange={(e) => setClaimDate(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white"
+                  className={`w-full border rounded-xl px-4 py-3 text-xs font-semibold outline-none transition-all ${
+                    role === "super_admin"
+                      ? "border-teal-300 bg-white text-slate-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 shadow-2xs"
+                      : "border-slate-200 bg-slate-100/90 text-slate-500 cursor-not-allowed"
+                  }`}
+                  title={role === "super_admin" ? "Super Admin can backdate filing date" : "Filing date is automatically assigned to current date"}
                 />
+                {role !== "super_admin" && (
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Automatically assigned to current date. Only Super Admin has privilege to backdate.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -465,17 +507,18 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
           </div>
         )}
 
+        {/* Step 3: Expense Itemization Breakdown */}
         {step === 3 && (
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm space-y-4 sm:space-y-6 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold text-sm">
+                <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
                   3
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">Expense Itemization Breakdown</h3>
                   <p className="text-xs text-slate-500 font-normal">
-                    Add each individual expenditure with currency and payment method <span className="text-rose-500 font-bold">(at least 1 required *)</span>.
+                    Add each expenditure with currency and payment method <span className="text-rose-500 font-bold">(at least 1 required *)</span>.
                   </p>
                 </div>
               </div>
@@ -483,24 +526,25 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
               <button
                 type="button"
                 onClick={addItemRow}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-md transition-colors cursor-pointer"
+                className="w-full sm:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-md transition-colors cursor-pointer"
               >
                 <Plus size={16} /> Add Expense Item
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+            {/* Desktop Table View (hidden on mobile) */}
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200">
               <table className="w-full text-xs whitespace-nowrap">
                 <thead>
                   <tr className="bg-[#007A87] text-white font-semibold">
                     <th className="text-left px-4 py-3.5 min-w-[120px] whitespace-nowrap">Type</th>
-                    <th className="text-left px-4 py-3.5 min-w-[150px] whitespace-nowrap">Description</th>
+                    <th className="text-left px-4 py-3.5 min-w-[170px] whitespace-nowrap">Description</th>
                     <th className="text-left px-3 py-3.5 w-24 whitespace-nowrap">Currency</th>
                     <th className="text-right px-3 py-3.5 w-28 whitespace-nowrap">Credit Card</th>
                     <th className="text-right px-3 py-3.5 w-28 whitespace-nowrap">Cash</th>
                     <th className="text-right px-3 py-3.5 w-24 whitespace-nowrap">VAT</th>
                     <th className="text-right px-4 py-3.5 w-28 whitespace-nowrap">Total</th>
-                    <th className="text-center px-3 py-3.5 w-32 whitespace-nowrap">Note</th>
+                    <th className="text-center px-3 py-3.5 w-16 whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
@@ -578,29 +622,18 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                         {fmtCurrency(item.total, CURRENCY_SYMBOLS[item.currency] || "£")}
                       </td>
                       <td className="p-2.5 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
+                        {items.length > 1 ? (
                           <button
                             type="button"
-                            onClick={() => openNoteModal(item)}
-                            className={`px-2 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                              item.note ? "bg-teal-100 text-teal-800 border border-teal-300" : "bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200"
-                            }`}
-                            title="Add/View Note"
+                            onClick={() => removeItemRow(item.id)}
+                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-rose-100 cursor-pointer"
+                            title="Remove item"
                           >
-                            <MessageSquare size={12} />
-                            <span className="hidden sm:inline">{item.note ? "Noted" : "Note"}</span>
+                            <Trash2 size={14} />
                           </button>
-                          {items.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeItemRow(item.id)}
-                              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-rose-100 cursor-pointer"
-                              title="Remove item"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
+                        ) : (
+                          <span className="text-slate-300 font-mono text-xs">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -617,9 +650,152 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Cards View (Optimized for Smartphone Screens) */}
+            <div className="md:hidden space-y-4">
+              {items.map((item, idx) => (
+                <div key={item.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-teal-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
+                        {idx + 1}
+                      </span>
+                      <span className="text-xs font-bold text-slate-800">
+                        Item #{idx + 1}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-extrabold text-teal-900 bg-teal-100/80 px-2.5 py-0.5 rounded-lg border border-teal-200">
+                        {fmtCurrency(item.total, CURRENCY_SYMBOLS[item.currency] || "£")}
+                      </span>
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeItemRow(item.id)}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg border border-rose-200 cursor-pointer"
+                          title="Remove item"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      Description / Category <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={item.category}
+                      onChange={(e) => updateItem(item.id, "category", e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none bg-white focus:border-teal-500 shadow-2xs"
+                    >
+                      <option value="">...Select Description Option...</option>
+                      {CATEGORY_OPTIONS.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Budget Type</label>
+                      <select
+                        value={item.type}
+                        onChange={(e) => updateItem(item.id, "type", e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 outline-none bg-white focus:border-teal-500 shadow-2xs"
+                      >
+                        {TYPE_OPTIONS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Currency</label>
+                      <select
+                        value={item.currency}
+                        onChange={(e) => updateItem(item.id, "currency", e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 outline-none bg-white focus:border-teal-500 shadow-2xs"
+                      >
+                        <option value="GBP">GBP (£)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Card</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.card || ""}
+                        onChange={(e) => updateItem(item.id, "card", e.target.value)}
+                        placeholder="0.00"
+                        className={`w-full border rounded-xl px-2.5 py-2 text-xs font-semibold text-right outline-none focus:border-teal-500 bg-white ${
+                          item.payMode === "card" && item.card > 0 ? "border-teal-500 ring-1 ring-teal-500/20" : "border-slate-200"
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cash</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.cash || ""}
+                        onChange={(e) => updateItem(item.id, "cash", e.target.value)}
+                        placeholder="0.00"
+                        className={`w-full border rounded-xl px-2.5 py-2 text-xs font-semibold text-right outline-none focus:border-teal-500 bg-white ${
+                          item.payMode === "cash" && item.cash > 0 ? "border-teal-500 ring-1 ring-teal-500/20" : "border-slate-200"
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">VAT</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.vat || ""}
+                        onChange={(e) => updateItem(item.id, "vat", e.target.value)}
+                        placeholder="0.00"
+                        className="w-full border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-right outline-none focus:border-teal-500 bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Mobile Grand Subtotals Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-[#054D66] to-[#007A87] text-white shadow-md space-y-3">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-teal-200">Grand Total ({activeSymbol})</span>
+                  <span className="text-lg font-black text-white">{fmtCurrency(grandTotal, activeSymbol)}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="p-2 rounded-xl bg-white/10">
+                    <p className="text-[10px] text-teal-200 font-medium">Card</p>
+                    <p className="font-bold text-white mt-0.5">{fmtCurrency(subtotalCard, activeSymbol)}</p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-white/10">
+                    <p className="text-[10px] text-teal-200 font-medium">Cash</p>
+                    <p className="font-bold text-white mt-0.5">{fmtCurrency(subtotalCash, activeSymbol)}</p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-white/10">
+                    <p className="text-[10px] text-teal-200 font-medium">VAT</p>
+                    <p className="font-bold text-white mt-0.5">{fmtCurrency(subtotalVat, activeSymbol)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
+        {/* Step 4: Add Attachments & Supporting Documents (Date added to each file) */}
         {step === 4 && (
           <div className="space-y-6 animate-fade-in">
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
@@ -630,13 +806,13 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-base">Add Attachments & Supporting Documents</h3>
-                    <p className="text-xs text-slate-500 font-normal">Attach multiple receipts, invoices, or supporting files to this claim.</p>
+                    <p className="text-xs text-slate-500 font-normal">Attach receipts, invoices, or supporting files and specify their individual dates.</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-semibold text-slate-500 px-3 py-1 bg-slate-100 rounded-full">
-                    {uploadedFiles.length} files attached
+                    {uploadedFiles.length} file{uploadedFiles.length !== 1 ? "s" : ""} attached
                   </span>
 
                   <button
@@ -680,31 +856,68 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
               </div>
 
               {uploadedFiles.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
                   {uploadedFiles.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 text-teal-700 flex items-center justify-center flex-shrink-0 font-bold text-xs uppercase">
-                          {item.name.split('.').pop().slice(0, 3)}
+                    <div key={item.id} className="p-3.5 rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow space-y-2.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 text-teal-700 flex items-center justify-center flex-shrink-0 font-bold text-xs uppercase">
+                            {item.name.split('.').pop().slice(0, 3)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-900 truncate" title={item.name}>{item.name}</p>
+                            <p className="text-[10px] text-slate-400 font-medium">{item.size}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-900 truncate">{item.name}</p>
-                          <p className="text-[10px] text-slate-400 font-medium">{item.size}</p>
-                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeFile(item.id); }}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex-shrink-0"
+                          title="Remove file"
+                        >
+                          <X size={16} />
+                        </button>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); removeFile(item.id); }}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                        title="Remove file"
-                      >
-                        <X size={16} />
-                      </button>
+                      {/* Receipt / Supporting Document Date Input */}
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                          <Calendar size={12} className="text-teal-600" />
+                          <span>Receipt Date:</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={item.docDate}
+                          onChange={(e) => updateFileDate(item.id, e.target.value)}
+                          className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 bg-slate-50 focus:bg-white focus:border-teal-500 outline-none transition-colors"
+                          title="Date of receipt or supporting document"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Claim Notes & Remarks Section */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-3.5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold text-sm">
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Claim Note / Additional Remarks</h3>
+                  <p className="text-xs text-slate-500 font-normal">Add any context, business explanation, or remarks regarding this claim.</p>
+                </div>
+              </div>
+              <textarea
+                rows={3}
+                value={claimNote}
+                onChange={(e) => setClaimNote(e.target.value)}
+                placeholder="Enter claim notes, travel details, or justification for the finance team..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-medium text-slate-800 outline-none focus:border-teal-500 focus:bg-white transition-all resize-none shadow-xs"
+              />
             </div>
 
             <div className="bg-gradient-to-br from-slate-900 via-[#054D66] to-[#007A87] rounded-3xl p-6 text-white shadow-md space-y-4">
@@ -733,31 +946,17 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                   <p className="font-extrabold text-white text-sm mt-0.5">{fmtCurrency(grandTotal, activeSymbol)}</p>
                 </div>
               </div>
+
+              {claimNote && claimNote.trim() && (
+                <div className="pt-3 border-t border-white/10 text-xs">
+                  <p className="text-[11px] text-teal-200/80 font-medium">Claim Note / Remarks:</p>
+                  <p className="text-white text-xs mt-0.5 italic line-clamp-2">"{claimNote}"</p>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
-
-      {activeNoteModalItem && createPortal(
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-scale-in space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2 text-teal-800">
-                <MessageSquare size={18} />
-                <h3 className="font-bold text-sm text-slate-900">Add Item Note / Other Info</h3>
-              </div>
-              <button type="button" onClick={() => setActiveNoteModalItem(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"><X size={18} /></button>
-            </div>
-            <p className="text-xs text-slate-500">Provide additional context or details for <span className="font-bold text-slate-700">{activeNoteModalItem.category || "this expense line item"}</span>.</p>
-            <textarea rows={4} value={noteModalText} onChange={(e) => setNoteModalText(e.target.value)} placeholder="Enter additional info or explanatory notes here..." className="w-full border border-slate-200 rounded-2xl p-4 text-xs font-medium text-slate-800 outline-none focus:border-teal-500 shadow-sm" />
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
-              <button type="button" onClick={() => setActiveNoteModalItem(null)} className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">Cancel</button>
-              <button type="button" onClick={saveNoteModal} className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-md cursor-pointer">Save Note</button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* Navigation Footer */}
       <div className="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-between flex-shrink-0">
