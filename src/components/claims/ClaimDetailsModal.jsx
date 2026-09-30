@@ -249,18 +249,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                 </div>
               )}
 
-              {/* Claim Note / Application Remarks */}
-              {(claim.note || claim.notes || claim.claimantNote || claim.officerNote) && (
-                <div className="p-3.5 bg-teal-50/70 rounded-2xl border border-teal-200/90 space-y-1.5 shadow-2xs">
-                  <div className="flex items-center gap-1.5 text-teal-900 font-bold text-xs uppercase tracking-wider">
-                    <FileText size={14} className="text-teal-700" />
-                    <span>Claim Note / Remarks</span>
-                  </div>
-                  <p className="text-xs text-slate-800 font-medium whitespace-pre-wrap leading-relaxed">
-                    {claim.note || claim.notes || claim.claimantNote || claim.officerNote}
-                  </p>
-                </div>
-              )}
+
 
               {/* Supporting Attachments Section with Document Viewer Trigger & Date display */}
               <div className="space-y-2.5">
