@@ -466,7 +466,6 @@ export function printClaimVoucher(claim) {
                 <div class="attach-name" title="${name}">📎 ${name}</div>
                 <div class="attach-meta">Date: ${formatDate(date)} • ${size}</div>
               </div>
-              <span style="color: #007A87; font-weight: 700; font-size: 8.5px;">✓ AUDIT VERIFIED</span>
             </div>
           `;
         }).join("")}

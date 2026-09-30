@@ -1,24 +1,104 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   X, FileText, Download, Printer, ShieldCheck, CheckCircle2,
-  Calendar, User, Building, ExternalLink, Paperclip
+  Calendar, User, Building, ExternalLink, Paperclip, Loader2, AlertTriangle
 } from "lucide-react";
-import { fmtN } from "../../constants/theme";
+import { fmtN, API_BASE_URL } from "../../constants/theme";
 import { printDocumentRecord } from "../../utils/printVoucher";
 
 export default function DocumentViewerModal({ file, claim, onClose }) {
-  if (!file) return null;
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [loadState, setLoadState] = useState("idle"); // idle | loading | ready | error
+  const blobUrlRef = useRef(null);
 
-  const fileName = typeof file === "string" ? file : file.fileName || file.name || "Attached Document";
-  const ext = (fileName.includes(".") ? fileName.split(".").pop() : "DOC").toUpperCase();
+  // Derived from file — safe to read even if file is null because hooks must run unconditionally
+  const fileName = !file ? "" : (typeof file === "string" ? file : file.fileName || file.name || "Attached Document");
+  const ext = fileName && fileName.includes(".") ? fileName.split(".").pop().toUpperCase() : "DOC";
   const isPdf = ext === "PDF";
   const isImg = ["JPG", "JPEG", "PNG", "WEBP", "GIF"].includes(ext);
   const refNo = claim?.id || claim?.claimRefNo || "Claim";
-  const docDate = file.date || file.uploadDate || file.docDate || claim?.date || "—";
+  const docDate = !file ? "" : (file.date || file.uploadDate || file.docDate || file.uploadedAt || claim?.date || "—");
+
+  // Determine whether we have a GridFS file ID to fetch
+  const rawFileId = !file || typeof file === "string" ? null : file.fileUrl || null;
+  const isGridFsId = rawFileId && !rawFileId.startsWith("http") && !rawFileId.startsWith("/") && !rawFileId.startsWith("data:");
+  const directUrl = rawFileId && !isGridFsId ? rawFileId : null;
+
+  // Fetch the file from GridFS with auth token and create a blob URL
+  useEffect(() => {
+    if (!isGridFsId) return;
+
+    let cancelled = false;
+    setLoadState("loading");
+    setBlobUrl(null);
+
+    const stored = localStorage.getItem("ifrs_user");
+    const token = stored ? (JSON.parse(stored)?.token || "") : "";
+
+    fetch(`${API_BASE_URL}/files/${rawFileId}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        const blob = await res.blob();
+        if (cancelled) return;
+        const url = URL.createObjectURL(blob);
+        blobUrlRef.current = url;
+        setBlobUrl(url);
+        setLoadState("ready");
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("[DocumentViewer] Failed to load file:", err);
+          setLoadState("error");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawFileId]);
+
+  // Revoke blob on modal close
+  const handleClose = () => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+    onClose();
+  };
+
+  // Resolved display URL: prefer fetched blob, then direct URL
+  const displayUrl = blobUrl || directUrl;
+
+  // Guard: must be after all hooks
+  if (!file) return null;
 
   const handlePrint = () => {
     printDocumentRecord(file, claim);
+  };
+
+  // Download the actual file if we have a blob URL
+  const handleDownloadFile = () => {
+    if (blobUrl) {
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName;
+      a.click();
+      return;
+    }
+    if (directUrl) {
+      window.open(directUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    // Fallback to voucher text
+    handleDownloadStub();
   };
 
   const handleDownloadStub = () => {
@@ -52,7 +132,7 @@ Timestamp        : ${new Date().toISOString()}
   return createPortal(
     <div
       className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[70] flex items-center justify-center p-3 sm:p-6 animate-fade-in"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-slate-200 overflow-hidden animate-scale-in my-auto max-h-[92vh] flex flex-col"
@@ -82,35 +162,8 @@ Timestamp        : ${new Date().toISOString()}
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               type="button"
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-              title="Print Record"
-            >
-              <Printer size={15} />
-              <span>Print</span>
-            </button>
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/30 hover:bg-teal-500/40 border border-teal-300/40 text-teal-100 hover:text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-              title="Save Record as PDF"
-            >
-              <Download size={15} />
-              <span className="hidden sm:inline">Save as PDF</span>
-              <span className="sm:hidden">PDF</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleDownloadStub}
+              onClick={handleClose}
               className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-              title="Download Verification Voucher"
-            >
-              <Download size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer ml-1"
               title="Close"
             >
               <X size={20} />
@@ -120,139 +173,76 @@ Timestamp        : ${new Date().toISOString()}
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
-          {file.fileUrl && (file.fileUrl.startsWith("http") || file.fileUrl.startsWith("/api") || file.fileUrl.startsWith("data:")) ? (
+          {/* ── Loading state ── */}
+          {loadState === "loading" && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 min-h-[50vh] flex flex-col items-center justify-center gap-3">
+              <Loader2 size={36} className="text-teal-600 animate-spin" />
+              <p className="text-sm font-semibold text-slate-500">Loading document…</p>
+            </div>
+          )}
+
+          {/* ── Error state ── */}
+          {loadState === "error" && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 min-h-[30vh] flex flex-col items-center justify-center gap-3 p-6">
+              <AlertTriangle size={36} className="text-rose-500" />
+              <p className="text-sm font-bold text-rose-700">Failed to load document</p>
+              <p className="text-xs text-rose-600 text-center max-w-xs">
+                The file could not be retrieved from the server. It may have been moved or the session may have expired.
+              </p>
+            </div>
+          )}
+
+          {/* ── File viewer (blob or direct URL) ── */}
+          {displayUrl && loadState !== "loading" && loadState !== "error" && (
             <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50 min-h-[50vh] flex items-center justify-center">
               {isImg ? (
                 <img
-                  src={file.fileUrl}
+                  src={displayUrl}
                   alt={fileName}
                   className="max-h-[65vh] object-contain mx-auto"
                 />
               ) : (
                 <iframe
-                  src={file.fileUrl}
+                  src={displayUrl}
                   title={fileName}
                   className="w-full h-[65vh] border-0"
                 />
               )}
             </div>
-          ) : (
-            /* Document Certificate Voucher */
-            <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-slate-50 to-white border border-slate-200/90 shadow-sm relative overflow-hidden">
-              {/* Decorative background watermark */}
-              <div className="absolute right-4 bottom-4 opacity-5 pointer-events-none">
-                <ShieldCheck size={280} className="text-teal-900" />
+          )}
+
+          {/* ── File not stored in GridFS (legacy/metadata-only attachment) ── */}
+          {!displayUrl && loadState === "idle" && !rawFileId && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-8 flex flex-col items-center gap-4 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center">
+                <Paperclip size={28} className="text-amber-600" />
               </div>
-
-              {/* Top Banner */}
-              <div className="flex items-center justify-between border-b border-slate-200 pb-5 mb-6 gap-4 flex-wrap">
-                <div>
-                  <p className="text-[10px] font-bold text-teal-700 uppercase tracking-widest">
-                    Halal Food Authority — Internal Financial Record System
-                  </p>
-                  <h4 className="text-lg font-black text-slate-900 mt-1">
-                    Electronic Document & Receipt Record
-                  </h4>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Verified supporting voucher attached to Claim ID: <span className="font-mono font-bold text-slate-800">{refNo}</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold shadow-2xs">
-                  <ShieldCheck size={16} className="text-teal-600" />
-                  <span>AUDIT VERIFIED</span>
-                </div>
+              <div>
+                <p className="text-sm font-bold text-amber-900">File Preview Not Available</p>
+                <p className="text-xs text-amber-700 mt-1 max-w-sm">
+                  The binary file for <span className="font-semibold">{fileName}</span> was recorded as metadata only and was not stored in the document server.
+                  This typically affects attachments submitted before the file storage system was enabled.
+                </p>
               </div>
-
-              {/* Grid Metadata */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
-                  <div className="flex items-center gap-2 text-slate-400 mb-1">
-                    <Paperclip size={14} className="text-teal-600" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">File Name</span>
-                  </div>
-                  <p className="text-xs font-bold text-slate-900 break-words truncate" title={fileName}>
-                    {fileName}
-                  </p>
+              {/* Metadata strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full mt-2">
+                <div className="p-3 rounded-xl bg-white border border-amber-100 shadow-2xs text-left">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">File Name</p>
+                  <p className="text-xs font-bold text-slate-800 truncate" title={fileName}>{fileName}</p>
                 </div>
-
-                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
-                  <div className="flex items-center gap-2 text-slate-400 mb-1">
-                    <Calendar size={14} className="text-emerald-600" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Doc Date</span>
-                  </div>
-                  <p className="text-xs font-bold text-slate-900">
-                    {docDate}
-                  </p>
-                  <p className="text-[11px] text-slate-500">{file.fileSize || "Supporting Proof"}</p>
+                <div className="p-3 rounded-xl bg-white border border-amber-100 shadow-2xs text-left">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Doc Date</p>
+                  <p className="text-xs font-bold text-slate-800">{docDate || "—"}</p>
+                  <p className="text-[10px] text-slate-400">{file.fileSize || ""}</p>
                 </div>
-
-                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
-                  <div className="flex items-center gap-2 text-slate-400 mb-1">
-                    <User size={14} className="text-blue-600" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Claimant</span>
-                  </div>
-                  <p className="text-xs font-bold text-slate-900 truncate">
-                    {claim?.claimant || claim?.claimantName || "Staff Member"}
-                  </p>
-                  <p className="text-[11px] text-slate-500">{claim?.dept || claim?.department || "Operations"}</p>
+                <div className="p-3 rounded-xl bg-white border border-amber-100 shadow-2xs text-left">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Claimant</p>
+                  <p className="text-xs font-bold text-slate-800 truncate">{claim?.claimant || claim?.claimantName || "Staff Member"}</p>
                 </div>
-
-                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
-                  <div className="flex items-center gap-2 text-slate-400 mb-1">
-                    <Building size={14} className="text-purple-600" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Company</span>
-                  </div>
-                  <p className="text-xs font-bold text-slate-900 truncate">
-                    {claim?.companyName || "Halal Food Authority"}
-                  </p>
-                  <p className="text-[11px] text-teal-700 font-semibold">{fmtN(claim?.amount || 0)} Total Claim</p>
+                <div className="p-3 rounded-xl bg-white border border-amber-100 shadow-2xs text-left">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Claim Ref</p>
+                  <p className="text-xs font-bold text-slate-800 font-mono">{refNo}</p>
                 </div>
-              </div>
-
-              {/* Verification Info Box */}
-              <div className="p-5 rounded-2xl bg-teal-50/70 border border-teal-200/80 mb-6">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
-                    <CheckCircle2 size={18} />
-                  </div>
-                  <div className="space-y-1">
-                    <h5 className="text-xs font-bold text-teal-950 uppercase tracking-wider">
-                      Verified Claim Document Reference
-                    </h5>
-                    <p className="text-xs text-teal-900/90 leading-relaxed font-normal">
-                      This file was recorded under claim reference <span className="font-mono font-bold">{refNo}</span>.
-                      It is indexed as a verified expense justification for <span className="font-semibold">{claim?.claimant || claim?.claimantName || "the claimant"}</span> with status <span className="font-semibold uppercase">{claim?.status || "Approved"}</span>.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions Footer inside voucher */}
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleDownloadStub}
-                  className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Download size={14} />
-                  <span>Download Voucher</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Printer size={15} />
-                  <span>Print</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  className="px-5 py-2.5 text-xs font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Download size={15} />
-                  <span>Save as PDF</span>
-                </button>
               </div>
             </div>
           )}
@@ -264,25 +254,19 @@ Timestamp        : ${new Date().toISOString()}
             Electronic Document Archive • Halal Food Authority (IFRS)
           </p>
           <div className="flex items-center gap-2">
+            {(blobUrl || directUrl) && (
+              <button
+                type="button"
+                onClick={handleDownloadFile}
+                className="px-3.5 py-2 text-xs font-bold rounded-xl border border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-700 shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download size={14} />
+                <span>Download</span>
+              </button>
+            )}
             <button
               type="button"
-              onClick={handlePrint}
-              className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Printer size={14} />
-              <span>Print</span>
-            </button>
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="px-3.5 py-2 text-xs font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Download size={14} />
-              <span>Save as PDF</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 shadow-xs transition-colors cursor-pointer"
             >
               Close

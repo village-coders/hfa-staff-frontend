@@ -636,7 +636,7 @@ export function AppProvider({ children }) {
         };
         setClaims((prev) => [mappedClaim, ...prev]);
         showToast("Claim created and submitted successfully!", "success");
-        return { success: true };
+        return { success: true, claimId: serverClaim._id, claimRefNo: serverClaim.claimRefNo };
       } else {
         const errData = await res.json().catch(() => ({}));
         console.error("Failed to submit claim:", res.status, errData);

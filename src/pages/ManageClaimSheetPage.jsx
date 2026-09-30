@@ -5,7 +5,7 @@ import {
   PlusCircle, Calendar, ShieldCheck, FileText
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { fmtN } from "../constants/theme";
+import { fmtN, API_BASE_URL } from "../constants/theme";
 
 const WIZARD_STEPS = [
   { id: 1, title: "Claimant & Details", subtitle: "Basic claimant identification" },
@@ -180,12 +180,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
         vat: parseFloat(i.vat) || 0,
         total: parseFloat(i.total) || 0,
       })),
-      attachments: uploadedFiles.map(f => ({
-        fileName: f.name,
-        fileSize: f.size,
-        date: f.docDate,
-        uploadDate: f.docDate,
-      })),
+      attachments: [],
       note: claimNote,
       notes: claimNote,
       officerNote: claimNote,
@@ -198,6 +193,26 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
       amount: grandTotal,
       department: "Operations",
     });
+
+    // ── Upload actual file binaries to GridFS after claim creation ──────────
+    if (result && result.success && result.claimRefNo) {
+      const filesWithBinary = uploadedFiles.filter(f => f.file instanceof File);
+      if (filesWithBinary.length > 0) {
+        try {
+          const stored = localStorage.getItem("ifrs_user");
+          const token = stored ? (JSON.parse(stored)?.token || "") : "";
+          const formData = new FormData();
+          filesWithBinary.forEach(f => formData.append("files", f.file, f.name));
+          await fetch(`${API_BASE_URL}/claims/${result.claimRefNo}/attachments`, {
+            method: "POST",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formData,
+          });
+        } catch (uploadErr) {
+          console.warn("[Claim] File upload to GridFS failed:", uploadErr);
+        }
+      }
+    }
 
     setSubmitting(false);
 
