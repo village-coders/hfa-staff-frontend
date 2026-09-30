@@ -650,6 +650,26 @@ export function AppProvider({ children }) {
     }
   };
 
+  // Re-fetch a single claim by claimRefNo and patch its attachments in state
+  const refreshClaimAttachments = async (claimRefNo) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/claims/${claimRefNo}`, { headers: apiHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      const c = data.data || data.claim || data;
+      if (!c || !c.attachments) return;
+      setClaims((prev) =>
+        prev.map((claim) =>
+          claim.id === claimRefNo || claim._id === c._id
+            ? { ...claim, attachments: c.attachments }
+            : claim
+        )
+      );
+    } catch (e) {
+      console.warn("[refreshClaimAttachments] Failed:", e);
+    }
+  };
+
   const handleAddAsset = async (asset) => {
     try {
       const payload = {
@@ -875,6 +895,7 @@ export function AppProvider({ children }) {
     handleRestoreClaim,
     handlePurgeClaim,
     handleSubmitClaim,
+    refreshClaimAttachments,
     handleAddAsset,
     handleDeleteAsset,
     handleAddUser,

@@ -15,7 +15,7 @@ const WIZARD_STEPS = [
 ];
 
 export default function ManageClaimSheetPage({ onClose: propOnClose }) {
-  const { currentUser, role, handleSubmitClaim, closeClaimSheet } = useApp();
+  const { currentUser, role, handleSubmitClaim, refreshClaimAttachments, closeClaimSheet } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -203,11 +203,15 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
           const token = stored ? (JSON.parse(stored)?.token || "") : "";
           const formData = new FormData();
           filesWithBinary.forEach(f => formData.append("files", f.file, f.name));
-          await fetch(`${API_BASE_URL}/claims/${result.claimRefNo}/attachments`, {
+          const uploadRes = await fetch(`${API_BASE_URL}/claims/${result.claimRefNo}/attachments`, {
             method: "POST",
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             body: formData,
           });
+          if (uploadRes.ok) {
+            // Patch the claim in state with the newly created attachments
+            await refreshClaimAttachments(result.claimRefNo);
+          }
         } catch (uploadErr) {
           console.warn("[Claim] File upload to GridFS failed:", uploadErr);
         }
