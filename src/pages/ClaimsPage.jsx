@@ -13,7 +13,7 @@ import { fmtN } from "../constants/theme";
 
 export default function ClaimsPage() {
   const location = useLocation();
-  const { role, claims, currentUser, handleTransition, handleDeleteClaim, openClaimDetails } = useApp();
+  const { role, claims, currentUser, handleTransition, handleDeleteClaim, openClaimDetails, claimsLoading } = useApp();
 
   const viewKey = PATH_TO_VIEW[location.pathname] || "all-claims-list";
   const item = CLAIM_ITEMS.find((i) => i.key === viewKey) || CLAIM_ITEMS[1];
@@ -143,7 +143,14 @@ export default function ClaimsPage() {
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         {filtered.length === 0 ? (
-          <EmptyState icon={item.icon} title="Nothing here yet" subtitle={`No claims currently sit in ${item.label.toLowerCase()}.`} />
+          claimsLoading ? (
+            <div className="py-20 flex flex-col items-center justify-center gap-3">
+              <div className="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs text-slate-500 font-medium">Loading claims…</p>
+            </div>
+          ) : (
+            <EmptyState icon={item.icon} title="Nothing here yet" subtitle={`No claims currently sit in ${item.label.toLowerCase()}.`} />
+          )
         ) : (
           <>
             {/* ── Mobile card list ── */}

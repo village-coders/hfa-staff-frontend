@@ -13,7 +13,7 @@ import { ROLES, VIEW_TO_PATH } from "../constants/menu";
 import { STATUS, fmtN } from "../constants/theme";
 
 export default function DashboardPage() {
-  const { role, claims, claimStats, currentUser, handleTransition, handleDeleteClaim } = useApp();
+  const { role, claims, claimStats, currentUser, handleTransition, handleDeleteClaim, claimsLoading } = useApp();
   const navigate = useNavigate();
 
   const [selectedClaimForDetails, setSelectedClaimForDetails] = useState(null);
@@ -189,7 +189,14 @@ export default function DashboardPage() {
         </div>
 
         {recent.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-10 font-medium">No recent activity.</p>
+          claimsLoading ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-2.5">
+              <div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs text-slate-400 font-medium">Loading recent claims…</p>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 text-center py-10 font-medium">No recent activity.</p>
+          )
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs whitespace-nowrap">

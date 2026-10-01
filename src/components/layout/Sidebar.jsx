@@ -113,6 +113,17 @@ export default function Sidebar({ role, mobileOpen, setMobileOpen, claims = [], 
       "all-claims-list": isTotalViewer ? (claimStats?.totalClaims || claims.length) : list.length,
       "deleted-claim-list": deletedClaims?.length || 0,
     };
+    if (isTotalViewer && claimStats) {
+      counts["new-claim-list"] = (claimStats.submitted ?? claimStats.new ?? 0);
+      counts["pending-claim-list"] = (claimStats.pending ?? 0);
+      counts["verified-list"] = (claimStats.verified ?? 0) + (claimStats.further_approval_approved ?? 0) + (claimStats.further_approval_rejected ?? 0);
+      counts["further-approval"] = (claimStats.further_approval ?? 0) + (claimStats.further_approval_approved ?? 0) + (claimStats.further_approval_rejected ?? 0);
+      counts["approved-for-payment"] = (claimStats.approved_for_payment ?? 0);
+      counts["paid-list"] = (claimStats.paid ?? 0);
+      counts["rejected-claim-list"] = (claimStats.rejected ?? 0);
+      return counts;
+    }
+
     list.forEach((c) => {
       const item = CLAIM_ITEMS.find((it) => {
         if (it.status === "submitted" || it.status === "new") {

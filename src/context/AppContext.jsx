@@ -22,14 +22,38 @@ export function AppProvider({ children }) {
   const role = loggedInUser?.role || "user";
   const currentUser = loggedInUser?.name || loggedInUser?.username || "";
 
-  const [claims, setClaims] = useState([]);
+  const [claims, setClaims] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem("ifrs_cached_claims");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   const [deletedClaims, setDeletedClaims] = useState([]);
   const [loadingDeleted, setLoadingDeleted] = useState(false);
-  const [claimStats, setClaimStats] = useState(null);
+  const [claimStats, setClaimStats] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem("ifrs_cached_stats");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [assets, setAssets] = useState([]);
   const [users, setUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      const stored = localStorage.getItem("ifrs_user");
+      if (!stored) return false;
+      const cachedStats = sessionStorage.getItem("ifrs_cached_stats");
+      return !cachedStats;
+    } catch {
+      return false;
+    }
+  });
+  const [claimsLoading, setClaimsLoading] = useState(false);
   const [transitioningId, setTransitioningId] = useState(null);
   const [toasts, setToasts] = useState([]);
 
@@ -125,6 +149,23 @@ export function AppProvider({ children }) {
     }
   };
 
+  // Helper: if token is invalid (401), clear session. 403 (permission denied) simply returns false without logging out.
+  const checkAuth = (res) => {
+    if (res.status === 401) {
+      localStorage.removeItem("ifrs_user");
+      localStorage.removeItem("token");
+      try {
+        sessionStorage.removeItem("ifrs_cached_claims");
+        sessionStorage.removeItem("ifrs_cached_stats");
+      } catch {}
+      setLoggedInUser(null);
+      setLoading(false);
+      return false;
+    }
+    return res.ok;
+  };
+
+
   // Fetch all data after login
   useEffect(() => {
     if (!loggedInUser) {
@@ -135,79 +176,32 @@ export function AppProvider({ children }) {
     const headers = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
     async function fetchAll() {
-      setLoading(true);
-
-      // Helper: if token is invalid (401), clear session. 403 (permission denied) simply returns false without logging out.
-      const checkAuth = (res) => {
-        if (res.status === 401) {
-          localStorage.removeItem("ifrs_user");
-          localStorage.removeItem("token");
-          setLoggedInUser(null);
-          return false;
-        }
-        return res.ok;
-      };
-
-      try {
-        // Fast parallel fetch for summary stats (renders dashboard immediately in <50ms)
-        fetch(`${API_BASE_URL}/claims/summary`, { headers })
-          .then((r) => r.ok && r.json())
-          .then((s) => { if (s && s.success) setClaimStats(s); })
-          .catch(() => {});
-
-        const claimsRes = await fetch(`${API_BASE_URL}/claims?limit=10000`, { headers });
-        if (checkAuth(claimsRes)) {
-          const d = await claimsRes.json();
-          const list = extractList(d);
-          const mapped = list.map((c) => ({
-            _id: c._id,
-            id: c.claimRefNo || c.claimNumber || c.id || c._id,
-            claimant: c.claimantName || (c.claimantId && (c.claimantId.fullName || c.claimantId.name || c.claimantId.username)) || "User",
-            dept: c.department || "Operations",
-            title: c.claimType ? `${c.claimType} Claim` : c.title || "General Expense Claim",
-            claimType: c.claimType || "Staff Expense",
-            companyName: c.companyName || "Halal Food Authority",
-            contactPerson: c.contactPerson || "",
-            contactEmail: c.contactEmail || "",
-            reasons: c.reasons || [],
-            items: c.items || [],
-            subtotals: c.subtotals || null,
-            attachments: c.attachments || c.files || [],
-            amount: (c.subtotals && c.subtotals.grandTotal) || c.totalClaimAmount || c.amount || 0,
-            date: safeFormatDate(c.filingDate || c.claimDate || c.createdAt || c.date || c.updatedAt),
-            status: c.status ? (c.status.toLowerCase() === "new" ? "submitted" : c.status.toLowerCase()) : "submitted",
-            note: c.officerNote || c.feedbackNote || c.note || "",
-            history: c.history || [],
-          }));
-          setClaims(mapped);
-        } else {
-          setClaims([]);
-        }
-      } catch { setClaims([]); }
-
-      if (role === "super_admin" || role === "admin") {
-        try {
-          const usersRes = await fetch(`${API_BASE_URL}/users?limit=1000`, { headers });
-          if (checkAuth(usersRes)) {
-            const d = await usersRes.json();
-            const list = extractList(d);
-            const mapped = list.map((u) => ({
-              _id: u._id,
-              name: u.fullName || u.name || "",
-              email: u.email || "",
-              role: u.role || "user",
-              username: u.username || "",
-            }));
-            setUsers(mapped);
+      // 1. Fast parallel fetch for summary stats (renders dashboard immediately in <250ms)
+      const summaryPromise = fetch(`${API_BASE_URL}/claims/summary`, { headers })
+        .then(async (r) => {
+          if (checkAuth(r)) {
+            const s = await r.json();
+            if (s && s.success) {
+              setClaimStats(s);
+              try { sessionStorage.setItem("ifrs_cached_stats", JSON.stringify(s)); } catch {}
+            }
           }
-        } catch { /* keep empty */ }
-      }
+        })
+        .catch(() => {});
 
-      if (role === "super_admin") {
-        try {
-          const delRes = await fetch(`${API_BASE_URL}/claims?deleted=true&limit=5000`, { headers });
-          if (checkAuth(delRes)) {
-            const d = await delRes.json();
+      // Release the full-screen workspace loading screen quickly as soon as summary stats arrive,
+      // or at most after a snappy 350ms transition so the user enters their workspace immediately!
+      const splashTimeout = new Promise((res) => setTimeout(res, 350));
+      Promise.race([summaryPromise, splashTimeout]).finally(() => {
+        setLoading(false);
+      });
+
+      // 2. Fetch Claims (concurrently in parallel)
+      setClaimsLoading(true);
+      const claimsPromise = fetch(`${API_BASE_URL}/claims?limit=10000`, { headers })
+        .then(async (claimsRes) => {
+          if (checkAuth(claimsRes)) {
+            const d = await claimsRes.json();
             const list = extractList(d);
             const mapped = list.map((c) => ({
               _id: c._id,
@@ -225,74 +219,107 @@ export function AppProvider({ children }) {
               attachments: c.attachments || c.files || [],
               amount: (c.subtotals && c.subtotals.grandTotal) || c.totalClaimAmount || c.amount || 0,
               date: safeFormatDate(c.filingDate || c.claimDate || c.createdAt || c.date || c.updatedAt),
-              deletedAt: safeFormatDate(c.deletedAt || c.updatedAt),
-              deletedBy: c.deletedBy || "super_admin",
-              previousStatus: c.previousStatus || "submitted",
               status: c.status ? (c.status.toLowerCase() === "new" ? "submitted" : c.status.toLowerCase()) : "submitted",
               note: c.officerNote || c.feedbackNote || c.note || "",
               history: c.history || [],
             }));
-            setDeletedClaims(mapped);
+            setClaims(mapped);
+            try { sessionStorage.setItem("ifrs_cached_claims", JSON.stringify(mapped)); } catch {}
+          } else {
+            setClaims([]);
           }
-        } catch { /* keep empty */ }
+        })
+        .catch(() => setClaims([]))
+        .finally(() => {
+          setClaimsLoading(false);
+          setLoading(false);
+        });
+
+      // 3. Fetch Users (concurrently in background)
+      const usersPromise = (role === "super_admin" || role === "admin")
+        ? fetch(`${API_BASE_URL}/users?limit=1000`, { headers })
+            .then(async (usersRes) => {
+              if (checkAuth(usersRes)) {
+                const d = await usersRes.json();
+                const list = extractList(d);
+                const mapped = list.map((u) => ({
+                  _id: u._id,
+                  name: u.fullName || u.name || "",
+                  email: u.email || "",
+                  role: u.role || "user",
+                  username: u.username || "",
+                }));
+                setUsers(mapped);
+              }
+            })
+            .catch(() => {})
+        : Promise.resolve();
+
+      // 4. Fetch Assets (concurrently in background)
+      const assetsPromise = fetch(`${API_BASE_URL}/assets`, { headers })
+        .then(async (assetsRes) => {
+          if (checkAuth(assetsRes)) {
+            const d = await assetsRes.json();
+            const list = extractList(d);
+            const mapped = list.map((a) => ({
+              _id: a._id,
+              id: a.serialNumber || a.assetNumber || a.id || a._id,
+              name: a.assetName || a.name || "",
+              category: a.category || "Equipment",
+              dept: a.department || "Operations",
+              acquired: a.acquisitionDate
+                ? new Date(a.acquisitionDate).toISOString().slice(0, 10)
+                : a.acquiredDate
+                ? new Date(a.acquiredDate).toISOString().slice(0, 10)
+                : a.acquired || new Date().toISOString().slice(0, 10),
+              status: a.status || "Active",
+              staffName: a.staffName || "",
+              expiryDate: a.expiryDate ? new Date(a.expiryDate).toISOString().slice(0, 10) : "",
+              amount: a.amount || 0,
+              sellerVendor: a.sellerVendor || "",
+            }));
+            setAssets(mapped);
+          } else {
+            setAssets([]);
+          }
+        })
+        .catch(() => setAssets([]));
+
+      // 5. Fetch Notifications (concurrently in background)
+      const notifsPromise = fetch(`${API_BASE_URL}/notifications`, { headers })
+        .then(async (notifRes) => {
+          if (checkAuth(notifRes)) {
+            const d = await notifRes.json();
+            const list = extractList(d);
+            const mapped = list.map((n) => ({
+              _id: n._id,
+              id: n._id || n.id,
+              title: n.title || "Notification",
+              body: n.message || n.body || "",
+              message: n.message || n.body || "",
+              time: n.createdAt
+                ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : n.time || "Just now",
+              date: n.createdAt
+                ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : n.date || "Just now",
+              read: n.isRead ?? n.read ?? false,
+              type: n.type || "claim",
+              claimId: n.claimId || null,
+            }));
+            setNotifications(mapped);
+          } else {
+            setNotifications([]);
+          }
+        })
+        .catch(() => setNotifications([]));
+
+      // 6. Super admin deleted claims in background
+      if (role === "super_admin") {
+        fetchDeletedClaims();
       }
 
-      try {
-        const assetsRes = await fetch(`${API_BASE_URL}/assets`, { headers });
-        if (checkAuth(assetsRes)) {
-          const d = await assetsRes.json();
-          const list = extractList(d);
-          const mapped = list.map((a) => ({
-            _id: a._id,
-            id: a.serialNumber || a.assetNumber || a.id || a._id,
-            name: a.assetName || a.name || "",
-            category: a.category || "Equipment",
-            dept: a.department || "Operations",
-            acquired: a.acquisitionDate
-              ? new Date(a.acquisitionDate).toISOString().slice(0, 10)
-              : a.acquiredDate
-              ? new Date(a.acquiredDate).toISOString().slice(0, 10)
-              : a.acquired || new Date().toISOString().slice(0, 10),
-            status: a.status || "Active",
-            staffName: a.staffName || "",
-            expiryDate: a.expiryDate ? new Date(a.expiryDate).toISOString().slice(0, 10) : "",
-            amount: a.amount || 0,
-            sellerVendor: a.sellerVendor || "",
-          }));
-          setAssets(mapped);
-        } else {
-          setAssets([]);
-        }
-      } catch { setAssets([]); }
-
-      try {
-        const notifRes = await fetch(`${API_BASE_URL}/notifications`, { headers });
-        if (checkAuth(notifRes)) {
-          const d = await notifRes.json();
-          const list = extractList(d);
-          const mapped = list.map((n) => ({
-            _id: n._id,
-            id: n._id || n.id,
-            title: n.title || "Notification",
-            // map both fields so the panel renders them correctly
-            body: n.message || n.body || "",
-            message: n.message || n.body || "",
-            time: n.createdAt
-              ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : n.time || "Just now",
-            date: n.createdAt
-              ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : n.date || "Just now",
-            read: n.isRead ?? n.read ?? false,
-            type: n.type || "claim",
-            claimId: n.claimId || null,
-          }));
-          setNotifications(mapped);
-        } else {
-          setNotifications([]);
-        }
-      } catch { setNotifications([]); }
-
+      await Promise.allSettled([summaryPromise, claimsPromise, usersPromise, assetsPromise, notifsPromise]);
       setLoading(false);
     }
 
@@ -301,7 +328,16 @@ export function AppProvider({ children }) {
 
   /* ---- Action Handlers ---- */
 
-  const handleLogin = (user) => setLoggedInUser(user);
+  const handleLogin = (user) => {
+    // Only show loading if we don't have cached dashboard stats
+    try {
+      const cached = sessionStorage.getItem("ifrs_cached_stats");
+      setLoading(!cached);
+    } catch {
+      setLoading(true);
+    }
+    setLoggedInUser(user);
+  };
 
   const handleLogout = async () => {
     try {
@@ -312,11 +348,17 @@ export function AppProvider({ children }) {
     } catch {}
     localStorage.removeItem("ifrs_user");
     localStorage.removeItem("token");
+    try {
+      sessionStorage.removeItem("ifrs_cached_claims");
+      sessionStorage.removeItem("ifrs_cached_stats");
+    } catch {}
     setLoggedInUser(null);
     setClaims([]);
     setAssets([]);
     setUsers([]);
     setNotifications([]);
+    setClaimStats(null);
+    setLoading(false);
   };
 
   const handleTransition = async (id, newStatus, note, targetRole) => {
@@ -881,6 +923,8 @@ export function AppProvider({ children }) {
     users,
     notifications,
     loading,
+    claimsLoading,
+    loadingClaims: claimsLoading,
     transitioningId,
     toasts,
     hideToast,
