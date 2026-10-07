@@ -39,11 +39,11 @@ export const ASSET_ITEMS = [
 export const MENU_ACCESS = {
   user:              ["dashboard", "manage-claim-sheet", "all-claims-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "track-claim"],
   financial_officer: ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "track-claim"],
-  ceo:               ["dashboard", "all-claims-list", "verified-list", "further-approval", "track-claim"],
+  ceo:               ["dashboard", "manage-claim-sheet", "all-claims-list", "verified-list", "further-approval", "track-claim"],
   accountant:        ["dashboard", "manage-claim-sheet", "all-claims-list", "approved-for-payment", "paid-list", "manage-asset", "track-claim"],
   admin:             ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "track-claim"],
   super_admin:       ["dashboard", "manage-claim-sheet", "all-claims-list", "new-claim-list", "verified-list", "further-approval", "approved-for-payment", "paid-list", "pending-claim-list", "rejected-claim-list", "deleted-claim-list", "manage-asset", "new-asset-list", "add-new-asset", "users", "reports", "track-claim"],
-  chairman:          ["dashboard", "further-approval", "track-claim"],
+  chairman:          ["dashboard", "manage-claim-sheet", "all-claims-list", "further-approval", "track-claim"],
 };
 
 export const VIEW_TITLES = {
