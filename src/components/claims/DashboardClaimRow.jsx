@@ -1,4 +1,6 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { FileEdit, AlertCircle } from "lucide-react";
 import StatusBadge from "../ui/StatusBadge";
 import { fmtN } from "../../constants/theme";
 import ClaimActions from "./ClaimActions";
@@ -11,7 +13,24 @@ export default function DashboardClaimRow({
   onDelete,
   onViewDetails,
 }) {
+  const navigate = useNavigate();
   const refNo = claim.id || claim.claimRefNo || "Claim";
+  const isPending = (claim.status || "").toLowerCase() === "pending";
+
+  const pendingReason = (() => {
+    if (!isPending) return null;
+    if (claim.officerNote) return claim.officerNote;
+    if (Array.isArray(claim.notes)) {
+      const p = [...claim.notes].reverse().find(
+        (n) =>
+          ((n.toStatus || n.status || "").toLowerCase() === "pending") ||
+          (n.text && n.text.toLowerCase().includes("pending"))
+      );
+      if (p) return p.text || p.note || "";
+    }
+    if (claim.note) return claim.note;
+    return null;
+  })();
 
   const handleRowClick = () => {
     if (onViewDetails) onViewDetails(claim);
@@ -55,15 +74,30 @@ export default function DashboardClaimRow({
           className="px-3 py-4 text-center whitespace-nowrap"
           onClick={(e) => e.stopPropagation()}
         >
-          <ClaimActions
-            claim={claim}
-            view="dashboard"
-            role={role}
-            onTransition={onTransition}
-            onOpenFeedback={onOpenFeedback}
-            onDelete={onDelete}
-            onViewDetails={onViewDetails}
-          />
+          <div className="inline-flex items-center justify-center gap-1.5">
+            {isPending && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/claims/edit/${refNo}`, { state: { claimToEdit: claim } })
+                }
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                title={`Edit & correct claim ${refNo} (Pending)`}
+              >
+                <FileEdit size={12} />
+                <span>Edit</span>
+              </button>
+            )}
+            <ClaimActions
+              claim={claim}
+              view="dashboard"
+              role={role}
+              onTransition={onTransition}
+              onOpenFeedback={onOpenFeedback}
+              onDelete={onDelete}
+              onViewDetails={onViewDetails}
+            />
+          </div>
         </td>
       </tr>
 
@@ -95,6 +129,32 @@ export default function DashboardClaimRow({
               <span>{claim.date || "N/A"}</span>
             </div>
 
+            {/* Pending Reason Banner on Mobile */}
+            {isPending && (
+              <div className="my-2.5 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold flex items-center gap-1 text-[11px] uppercase tracking-wide text-amber-800">
+                    <AlertCircle size={12} className="text-amber-600" /> Correction Requested
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/claims/edit/${refNo}`, { state: { claimToEdit: claim } });
+                    }}
+                    className="px-2 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs cursor-pointer"
+                  >
+                    <FileEdit size={11} /> Edit
+                  </button>
+                </div>
+                {pendingReason && (
+                  <p className="line-clamp-2 text-[11px] font-medium text-amber-950 italic">
+                    "{pendingReason}"
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Amount + Action */}
             <div
               className="flex items-center justify-between"
@@ -103,15 +163,30 @@ export default function DashboardClaimRow({
               <span className="text-base font-black text-slate-900">
                 {fmtN(claim.amount || 0)}
               </span>
-              <ClaimActions
-                claim={claim}
-                view="dashboard"
-                role={role}
-                onTransition={onTransition}
-                onOpenFeedback={onOpenFeedback}
-                onDelete={onDelete}
-                onViewDetails={onViewDetails}
-              />
+              <div className="flex items-center gap-1.5">
+                {isPending && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/claims/edit/${refNo}`, { state: { claimToEdit: claim } })
+                    }
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                    title={`Edit & correct claim ${refNo} (Pending)`}
+                  >
+                    <FileEdit size={12} />
+                    <span>Edit</span>
+                  </button>
+                )}
+                <ClaimActions
+                  claim={claim}
+                  view="dashboard"
+                  role={role}
+                  onTransition={onTransition}
+                  onOpenFeedback={onOpenFeedback}
+                  onDelete={onDelete}
+                  onViewDetails={onViewDetails}
+                />
+              </div>
             </div>
           </div>
         </td>

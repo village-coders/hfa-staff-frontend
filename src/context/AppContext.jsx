@@ -692,6 +692,75 @@ export function AppProvider({ children }) {
     }
   };
 
+  const handleResubmitClaim = async (id, claimPayload) => {
+    const claimObj = claims.find((c) => c.id === id || c._id === id);
+    const dbId = claimObj?._id || id;
+    const refNo = claimObj?.id || id;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/claims/${dbId}/resubmit`, {
+        method: "PUT",
+        headers: apiHeaders(),
+        body: JSON.stringify(claimPayload),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const serverClaim = json.data || json.claim || json;
+
+        setClaims((prev) =>
+          prev.map((c) => {
+            if (c.id === id || c._id === id || c.id === refNo || c._id === dbId) {
+              return {
+                ...c,
+                ...claimPayload,
+                status: "submitted",
+                note: claimPayload.note || c.note,
+                items: claimPayload.items || c.items,
+                subtotals: claimPayload.subtotals || c.subtotals,
+                amount: (claimPayload.subtotals && claimPayload.subtotals.grandTotal) || claimPayload.amount || c.amount,
+                reasons: claimPayload.reasons || c.reasons,
+                attachments: serverClaim.attachments || claimPayload.attachments || c.attachments,
+                history: Array.isArray(serverClaim.history) ? serverClaim.history : c.history,
+              };
+            }
+            return c;
+          })
+        );
+
+        setSelectedClaimForDetails((prev) => {
+          if (!prev) return null;
+          if (prev.id === id || prev._id === id || prev.id === refNo || prev._id === dbId) {
+            return {
+              ...prev,
+              ...claimPayload,
+              status: "submitted",
+              note: claimPayload.note || prev.note,
+              items: claimPayload.items || prev.items,
+              subtotals: claimPayload.subtotals || prev.subtotals,
+              amount: (claimPayload.subtotals && claimPayload.subtotals.grandTotal) || claimPayload.amount || prev.amount,
+              reasons: claimPayload.reasons || prev.reasons,
+              attachments: serverClaim.attachments || claimPayload.attachments || prev.attachments,
+              history: Array.isArray(serverClaim.history) ? serverClaim.history : prev.history,
+            };
+          }
+          return prev;
+        });
+
+        showToast(`Claim ${refNo} corrected and resubmitted successfully to Submitted Claim list!`, "success");
+        return { success: true, claimId: serverClaim._id || dbId, claimRefNo: serverClaim.claimRefNo || refNo };
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        showToast(errData.message || "Failed to resubmit claim.", "error");
+        return { success: false, message: errData.message || `Server error: ${res.status}` };
+      }
+    } catch (e) {
+      console.error("Resubmit claim error:", e);
+      showToast("Network error while resubmitting claim. Please try again.", "error");
+      return { success: false, message: "Network error." };
+    }
+  };
+
   // Re-fetch a single claim by claimRefNo and patch its attachments in state
   const refreshClaimAttachments = async (claimRefNo) => {
     try {
@@ -939,6 +1008,7 @@ export function AppProvider({ children }) {
     handleRestoreClaim,
     handlePurgeClaim,
     handleSubmitClaim,
+    handleResubmitClaim,
     refreshClaimAttachments,
     handleAddAsset,
     handleDeleteAsset,

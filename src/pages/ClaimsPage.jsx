@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useLocation } from "react-router-dom";
-import { Search } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Search, FileEdit, AlertCircle } from "lucide-react";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/ui/EmptyState";
 import Pagination from "../components/ui/Pagination";
@@ -11,8 +11,24 @@ import { useApp } from "../context/AppContext";
 import { CLAIM_ITEMS, PATH_TO_VIEW } from "../constants/menu";
 import { fmtN } from "../constants/theme";
 
+const getPendingReason = (claim) => {
+  if (!claim) return "";
+  if (claim.officerNote) return claim.officerNote;
+  if (Array.isArray(claim.notes)) {
+    const p = [...claim.notes].reverse().find(
+      (n) =>
+        ((n.toStatus || n.status || "").toLowerCase() === "pending") ||
+        (n.text && n.text.toLowerCase().includes("pending"))
+    );
+    if (p) return p.text || p.note || "";
+  }
+  if (claim.note) return claim.note;
+  return "";
+};
+
 export default function ClaimsPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { role, claims, currentUser, handleTransition, handleDeleteClaim, openClaimDetails, claimsLoading } = useApp();
 
   const viewKey = PATH_TO_VIEW[location.pathname] || "all-claims-list";
@@ -100,8 +116,13 @@ export default function ClaimsPage() {
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const submitFeedback = () => {
+    const trimmed = (feedbackText || "").trim();
+    if (!trimmed) {
+      alert("Please provide a note/reason explaining why this claim requires correction before sending it to pending.");
+      return;
+    }
     if (feedbackClaim) {
-      handleTransition(feedbackClaim.id, "pending", feedbackText);
+      handleTransition(feedbackClaim.id, "pending", trimmed, "user");
       setFeedbackClaim(null);
       setFeedbackText("");
     }
@@ -157,6 +178,9 @@ export default function ClaimsPage() {
             <div className="sm:hidden divide-y divide-slate-100">
               {paged.map((c, idx) => {
                 const cRef = c.id || c.claimRefNo || "Claim";
+                const isPending = (c.status || "").toLowerCase() === "pending";
+                const reason = isPending ? getPendingReason(c) : "";
+
                 return (
                   <div
                     key={c.id || c._id || idx}
@@ -182,18 +206,59 @@ export default function ClaimsPage() {
                       <span>{c.date || "N/A"}</span>
                     </div>
 
+                    {/* Pending Correction Banner on Mobile */}
+                    {isPending && (
+                      <div className="my-2.5 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold flex items-center gap-1 text-[11px] uppercase tracking-wide text-amber-800">
+                            <AlertCircle size={12} className="text-amber-600" /> Correction Requested
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/claims/edit/${cRef}`, { state: { claimToEdit: c } });
+                            }}
+                            className="px-2 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs cursor-pointer"
+                          >
+                            <FileEdit size={11} /> Edit
+                          </button>
+                        </div>
+                        {reason && (
+                          <p className="line-clamp-2 text-[11px] font-medium text-amber-950 italic">
+                            "{reason}"
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Amount + Action */}
                     <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                       <span className="text-base font-black text-slate-900">{fmtN(c.amount || 0)}</span>
-                      <ClaimActions
-                        claim={c}
-                        view={viewKey}
-                        role={role}
-                        onTransition={handleTransition}
-                        onOpenFeedback={setFeedbackClaim}
-                        onDelete={handleDeleteClaim}
-                        onViewDetails={(claim) => openClaimDetails(claim)}
-                      />
+                      <div className="flex items-center gap-1.5">
+                        {isPending && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(`/claims/edit/${cRef}`, { state: { claimToEdit: c } })
+                            }
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                            title={`Edit & correct claim ${cRef} (Pending)`}
+                          >
+                            <FileEdit size={12} />
+                            <span>Edit</span>
+                          </button>
+                        )}
+                        <ClaimActions
+                          claim={c}
+                          view={viewKey}
+                          role={role}
+                          onTransition={handleTransition}
+                          onOpenFeedback={setFeedbackClaim}
+                          onDelete={handleDeleteClaim}
+                          onViewDetails={(claim) => openClaimDetails(claim)}
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -217,6 +282,9 @@ export default function ClaimsPage() {
                 <tbody className="divide-y divide-slate-100">
                   {paged.map((c, idx) => {
                     const cRef = c.id || c.claimRefNo || "Claim";
+                    const isPending = (c.status || "").toLowerCase() === "pending";
+                    const reason = isPending ? getPendingReason(c) : "";
+
                     return (
                       <tr
                         key={c.id || c._id || idx}
@@ -233,7 +301,13 @@ export default function ClaimsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3.5 font-semibold text-teal-800 min-w-[220px]">
-                          {c.companyName || c.contactPerson || "—"}
+                          <div>{c.companyName || c.contactPerson || "—"}</div>
+                          {isPending && reason && (
+                            <p className="text-[11px] font-medium text-amber-700 truncate max-w-xs mt-0.5 flex items-center gap-1" title={reason}>
+                              <AlertCircle size={10} className="text-amber-500 flex-shrink-0" />
+                              <span>Reason: {reason}</span>
+                            </p>
+                          )}
                         </td>
                         <td className="px-4 py-3.5 font-medium text-slate-900 whitespace-nowrap">
                           {c.claimant || c.claimantName || "User"}
@@ -251,15 +325,30 @@ export default function ClaimsPage() {
                           className="px-3 py-3.5 text-center whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <ClaimActions
-                            claim={c}
-                            view={viewKey}
-                            role={role}
-                            onTransition={handleTransition}
-                            onOpenFeedback={setFeedbackClaim}
-                            onDelete={handleDeleteClaim}
-                            onViewDetails={(claim) => openClaimDetails(claim)}
-                          />
+                          <div className="inline-flex items-center justify-center gap-1.5">
+                            {isPending && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  navigate(`/claims/edit/${cRef}`, { state: { claimToEdit: c } })
+                                }
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                                title={`Edit & correct claim ${cRef} (Pending)`}
+                              >
+                                <FileEdit size={12} />
+                                <span>Edit</span>
+                              </button>
+                            )}
+                            <ClaimActions
+                              claim={c}
+                              view={viewKey}
+                              role={role}
+                              onTransition={handleTransition}
+                              onOpenFeedback={setFeedbackClaim}
+                              onDelete={handleDeleteClaim}
+                              onViewDetails={(claim) => openClaimDetails(claim)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -283,19 +372,30 @@ export default function ClaimsPage() {
       {feedbackClaim && createPortal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-in my-auto">
-            <h3 className="font-extrabold text-base text-slate-900 mb-1">Send to Pending</h3>
-            <p className="text-xs text-slate-500 font-medium mb-4">To {feedbackClaim.claimant || feedbackClaim.claimantName} regarding {feedbackClaim.id}.</p>
+            <h3 className="font-extrabold text-base text-slate-900 mb-1 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              Send to Pending (Correction Needed)
+            </h3>
+            <p className="text-xs text-slate-500 font-medium mb-3">
+              To {feedbackClaim.claimant || feedbackClaim.claimantName} regarding {feedbackClaim.id || feedbackClaim.claimRefNo}. The claimant will see this reason note and have an Edit button to correct and resubmit the claim.
+            </p>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Reason / Instructions for Claimant <span className="text-rose-500 font-bold">*</span>
+            </label>
             <textarea
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               rows={4}
-              placeholder="e.g. Please attach a valid receipt..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none mb-4 focus:border-teal-500 focus:bg-white transition-all resize-none"
+              placeholder="e.g. Please correct VAT calculation on receipt #2 and attach valid documentation, then send back to submitted claims..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none mb-4 focus:border-amber-500 focus:bg-white transition-all resize-none"
             />
             <div className="flex justify-end gap-2.5">
               <button
                 type="button"
-                onClick={() => setFeedbackClaim(null)}
+                onClick={() => {
+                  setFeedbackClaim(null);
+                  setFeedbackText("");
+                }}
                 className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 Cancel
@@ -303,7 +403,7 @@ export default function ClaimsPage() {
               <button
                 type="button"
                 onClick={submitFeedback}
-                className="px-5 py-2 text-xs font-bold rounded-xl text-white bg-teal-600 hover:bg-teal-700 shadow-md transition-colors cursor-pointer"
+                className="px-5 py-2 text-xs font-bold rounded-xl text-white bg-amber-600 hover:bg-amber-700 shadow-md transition-colors cursor-pointer"
               >
                 Send to Pending
               </button>

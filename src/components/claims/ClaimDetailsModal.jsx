@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import {
   X, FileText, Calendar, Building, User,
   Tag, FileCheck2, Info, Paperclip, CreditCard, Wallet, Percent, DollarSign,
-  MessageSquare, Lock, Shield, CheckCircle2, RotateCcw, XCircle, Eye, Printer, Download
+  MessageSquare, Lock, Shield, CheckCircle2, RotateCcw, XCircle, Eye, Printer, Download,
+  AlertCircle, FileEdit
 } from "lucide-react";
 import StatusBadge from "../ui/StatusBadge";
 import ConfirmModal from "../ui/ConfirmModal";
@@ -14,6 +16,7 @@ import { printClaimVoucher } from "../../utils/printVoucher";
 
 export default function ClaimDetailsModal({ claim, onClose }) {
   const { role, currentUser, handleTransition, transitioningId } = useApp();
+  const navigate = useNavigate();
   const [pendingConfirm, setPendingConfirm] = useState(null);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
@@ -45,6 +48,16 @@ export default function ClaimDetailsModal({ claim, onClose }) {
     : (Array.isArray(claim.files) && claim.files.length > 0)
     ? claim.files
     : [];
+
+  const pendingHistoryEntry = Array.isArray(claim.history)
+    ? [...claim.history].reverse().find((h) => (h.toStatus || "").toUpperCase() === "PENDING" && h.note)
+    : null;
+  const pendingReason =
+    pendingHistoryEntry?.note ||
+    claim.officerNote ||
+    claim.note ||
+    "A correction is required by the reviewing officer before this claim can proceed.";
+  const pendingActor = pendingHistoryEntry?.actorName || "Financial Officer";
 
   return createPortal(
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
@@ -104,6 +117,47 @@ export default function ClaimDetailsModal({ claim, onClose }) {
 
         {/* Modal Content body - 2 Column Grid Layout to Drastically Reduce Scrolling */}
         <div className="p-5 sm:p-6 overflow-y-auto flex-1">
+          {/* Pending Correction Alert Banner */}
+          {currentStatus === "pending" && (
+            <div className="mb-6 p-4 sm:p-5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl shadow-xs animate-fade-in flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
+                  <AlertCircle size={22} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-900 bg-amber-200/90 px-2.5 py-0.5 rounded-md border border-amber-300">
+                      Correction Needed
+                    </span>
+                    <span className="text-xs font-semibold text-amber-800">
+                      Feedback from: <span className="font-bold text-slate-800">{pendingActor}</span>
+                    </span>
+                  </div>
+                  <div className="mt-1.5 p-3 bg-white rounded-xl border border-amber-200 text-xs font-medium text-slate-800 shadow-2xs">
+                    <span className="font-bold text-amber-950 block mb-0.5">Reason why sent to Pending:</span>
+                    <span className="text-slate-900 leading-relaxed">{pendingReason}</span>
+                  </div>
+                  <p className="text-xs text-amber-900 mt-1.5 font-medium">
+                    This claim is paused in Pending. You can edit the item details, amounts, reasons, or receipts and send it back to the Submitted Claim list.
+                  </p>
+                </div>
+              </div>
+
+              {(role === "user" || isFO || role === "admin" || role === "super_admin") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onClose) onClose();
+                    navigate(`/claims/edit/${claim.id || claim.claimRefNo || claim._id}`, { state: { claimToEdit: claim } });
+                  }}
+                  className="self-start md:self-center px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 shadow-md transition-all flex items-center gap-2 flex-shrink-0 cursor-pointer"
+                >
+                  <FileEdit size={16} />
+                  <span>Edit Claim Now</span>
+                </button>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             {/* LEFT COLUMN: Metadata, Totals, Financial Breakdown & Supporting Attachments (5 cols) */}
@@ -485,6 +539,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                 const visibleNotes = history.filter((entry) => {
                   if (!entry.note || !entry.note.trim()) return false;
                   if (isAdmin) return true;
+                  if ((entry.toStatus || "").toUpperCase() === "PENDING") return true;
                   if (isClaimant && entry.targetRole !== "user") return false;
                   if (entry.targetRole && role === entry.targetRole) return true;
                   if (entry.actorRole && role === entry.actorRole) return true;
@@ -855,30 +910,42 @@ export default function ClaimDetailsModal({ claim, onClose }) {
               </button>
             )}
 
-            {/* User / Staff resubmit */}
-            {currentStatus === "pending" && (role === "user" || isFO) && (
-              <button
-                type="button"
-                onClick={() =>
-                  setPendingConfirm({
-                    title: "Resubmit Expense Claim",
-                    message: `Are you sure you want to resubmit claim ${refNo}? It will move to the Submitted Claims list for review.`,
-                    confirmLabel: "Resubmit",
-                    confirmVariant: "primary",
-                    withNote: true,
-                    noteRequired: false,
-                    notePlaceholder: "Summary of changes / response to feedback...",
-                    noteLabel: "Resubmission Note",
-                    onConfirm: async (note) => {
-                      await handleTransition(claim.id, "submitted", note, "financial_officer");
-                      if (onClose) onClose();
-                    },
-                  })
-                }
-                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <RotateCcw size={14} /> Resubmit Claim
-              </button>
+            {/* User / Staff edit & resubmit */}
+            {currentStatus === "pending" && (role === "user" || isFO || role === "admin" || role === "super_admin") && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onClose) onClose();
+                    navigate(`/claims/edit/${claim.id || claim.claimRefNo || claim._id}`, { state: { claimToEdit: claim } });
+                  }}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <FileEdit size={14} /> Edit Claim
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingConfirm({
+                      title: "Resubmit Expense Claim",
+                      message: `Are you sure you want to resubmit claim ${refNo}? It will move to the Submitted Claims list for review.`,
+                      confirmLabel: "Resubmit",
+                      confirmVariant: "primary",
+                      withNote: true,
+                      noteRequired: false,
+                      notePlaceholder: "Summary of changes / response to feedback...",
+                      noteLabel: "Resubmission Note",
+                      onConfirm: async (note) => {
+                        await handleTransition(claim.id, "submitted", note, "financial_officer");
+                        if (onClose) onClose();
+                      },
+                    })
+                  }
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <RotateCcw size={14} /> Resubmit
+                </button>
+              </>
             )}
           </div>
 
@@ -941,21 +1008,30 @@ export default function ClaimDetailsModal({ claim, onClose }) {
       {feedbackModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-in my-auto">
-            <h3 className="font-extrabold text-base text-slate-900 mb-1">Send to Pending</h3>
-            <p className="text-xs text-slate-500 font-medium mb-4">
-              Send feedback note to {claim.claimant || claim.claimantName || "claimant"} regarding {refNo}.
+            <h3 className="font-extrabold text-base text-slate-900 mb-1 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              Send to Pending (Correction Needed)
+            </h3>
+            <p className="text-xs text-slate-500 font-medium mb-3">
+              Send correction instructions to {claim.claimant || claim.claimantName || "claimant"} regarding {refNo}. The claimant will see this note and have an Edit button to correct the claim.
             </p>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Reason / Instructions for Claimant <span className="text-rose-500 font-bold">*</span>
+            </label>
             <textarea
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               rows={4}
-              placeholder="e.g. Please attach a valid VAT invoice and resubmit..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none mb-4 focus:border-teal-500 focus:bg-white transition-all resize-none"
+              placeholder="e.g. Please correct VAT calculation on receipt #2 and attach valid documentation, then send back to submitted claims..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none mb-4 focus:border-amber-500 focus:bg-white transition-all resize-none"
             />
             <div className="flex justify-end gap-2.5">
               <button
                 type="button"
-                onClick={() => setFeedbackModalOpen(false)}
+                onClick={() => {
+                  setFeedbackModalOpen(false);
+                  setFeedbackText("");
+                }}
                 className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 Cancel
@@ -963,12 +1039,17 @@ export default function ClaimDetailsModal({ claim, onClose }) {
               <button
                 type="button"
                 onClick={async () => {
-                  await handleTransition(claim.id, "pending", feedbackText, "user");
+                  const trimmed = (feedbackText || "").trim();
+                  if (!trimmed) {
+                    alert("Please provide a note/reason explaining why this claim requires correction before sending it to pending.");
+                    return;
+                  }
+                  await handleTransition(claim.id, "pending", trimmed, "user");
                   setFeedbackModalOpen(false);
                   setFeedbackText("");
                   if (onClose) onClose();
                 }}
-                className="px-4 py-2 text-xs font-semibold rounded-xl text-white bg-amber-600 hover:bg-amber-700 transition-colors cursor-pointer shadow-sm"
+                className="px-5 py-2 text-xs font-bold rounded-xl text-white bg-amber-600 hover:bg-amber-700 transition-colors cursor-pointer shadow-sm"
               >
                 Confirm Send to Pending
               </button>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   X, CheckCircle2, ChevronRight, ChevronLeft, Plus, Trash2,
-  PlusCircle, Calendar, ShieldCheck, FileText
+  PlusCircle, Calendar, ShieldCheck, FileText, AlertCircle, RotateCcw
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { fmtN, API_BASE_URL } from "../constants/theme";
@@ -14,39 +14,167 @@ const WIZARD_STEPS = [
   { id: 4, title: "Attachments & Review", subtitle: "Documents & final submission" },
 ];
 
-export default function ManageClaimSheetPage({ onClose: propOnClose }) {
-  const { currentUser, role, handleSubmitClaim, refreshClaimAttachments, closeClaimSheet } = useApp();
+export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit: propClaimToEdit }) {
+  const { id: paramId } = useParams();
+  const location = useLocation();
+  const { currentUser, role, claims, handleSubmitClaim, handleResubmitClaim, refreshClaimAttachments, closeClaimSheet } = useApp();
   const navigate = useNavigate();
 
+  const initialClaim =
+    propClaimToEdit ||
+    location.state?.claimToEdit ||
+    (paramId ? (claims || []).find((c) => c.id === paramId || c._id === paramId || c.claimRefNo === paramId) : null);
+
+  const [claimToEdit, setClaimToEdit] = useState(initialClaim);
+  const isEditing = Boolean(claimToEdit);
+
   const [step, setStep] = useState(1);
-  const [claimantName, setClaimantName] = useState(currentUser || "");
+  const [claimantName, setClaimantName] = useState(() => (initialClaim ? (initialClaim.claimantName || initialClaim.claimant || currentUser || "") : (currentUser || "")));
   useEffect(() => {
-    if (!claimantName && currentUser) {
+    if (!claimantName && currentUser && !isEditing) {
       setClaimantName(currentUser);
     }
-  }, [currentUser]);
-  const [claimRefNo] = useState("MDOS-" + Math.floor(10000000000000 + Math.random() * 90000000000000));
-  const [claimType, setClaimType] = useState("Staff Expense");
-  const [companyName, setCompanyName] = useState("Halal Food Authority");
-  const [contactPerson, setContactPerson] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [claimDate, setClaimDate] = useState(new Date().toISOString().slice(0, 10));
+  }, [currentUser, claimantName, isEditing]);
 
-  const [reasons, setReasons] = useState([
-    { id: 1, option: "", chg: false }
-  ]);
+  const [claimRefNo, setClaimRefNo] = useState(() => (initialClaim ? (initialClaim.claimRefNo || initialClaim.id) : "MDOS-" + Math.floor(10000000000000 + Math.random() * 90000000000000)));
+  const [claimType, setClaimType] = useState(() => (initialClaim?.claimType || "Staff Expense"));
+  const [companyName, setCompanyName] = useState(() => (initialClaim?.companyName || "Halal Food Authority"));
+  const [contactPerson, setContactPerson] = useState(() => (initialClaim?.contactPerson || ""));
+  const [contactEmail, setContactEmail] = useState(() => (initialClaim?.contactEmail || ""));
+  const [claimDate, setClaimDate] = useState(() => {
+    if (initialClaim?.filingDate || initialClaim?.date) {
+      const raw = initialClaim.filingDate || initialClaim.date;
+      const d = new Date(raw);
+      return !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : raw;
+    }
+    return new Date().toISOString().slice(0, 10);
+  });
 
-  const [items, setItems] = useState([
-    { id: 1, type: "In Budget", category: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }
-  ]);
+  const [reasons, setReasons] = useState(() => {
+    if (Array.isArray(initialClaim?.reasons) && initialClaim.reasons.length > 0) {
+      return initialClaim.reasons.map((r, idx) => ({
+        id: idx + 1,
+        option: typeof r === "string" ? r : r.option || "",
+        chg: Boolean(r.chg || r.chargeable),
+      }));
+    }
+    return [{ id: 1, option: "", chg: false }];
+  });
 
+  const [items, setItems] = useState(() => {
+    if (Array.isArray(initialClaim?.items) && initialClaim.items.length > 0) {
+      return initialClaim.items.map((i, idx) => ({
+        id: idx + 1,
+        type: i.type || "In Budget",
+        category: i.category || "",
+        currency: i.currency || "GBP",
+        payMode: i.payMode || "cash",
+        card: parseFloat(i.card) || 0,
+        cash: parseFloat(i.cash) || 0,
+        bank: parseFloat(i.bank) || 0,
+        vat: parseFloat(i.vat) || 0,
+        total: parseFloat(i.total) || 0,
+        note: i.note || "",
+      }));
+    }
+    return [{ id: 1, type: "In Budget", category: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }];
+  });
+
+  const [existingAttachments, setExistingAttachments] = useState(() => {
+    return Array.isArray(initialClaim?.attachments) ? initialClaim.attachments : [];
+  });
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [claimNote, setClaimNote] = useState("");
+  const [claimNote, setClaimNote] = useState(() => initialClaim?.note || initialClaim?.notes || "");
   const [dragActive, setDragActive] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const fileInputRef = useRef(null);
+
+  // Fetch or sync claimToEdit if loaded via route param
+  useEffect(() => {
+    if (!claimToEdit && paramId) {
+      const found = (claims || []).find((c) => c.id === paramId || c._id === paramId || c.claimRefNo === paramId);
+      if (found) {
+        setClaimToEdit(found);
+      } else {
+        const stored = localStorage.getItem("ifrs_user");
+        const token = stored ? (JSON.parse(stored)?.token || "") : "";
+        fetch(`${API_BASE_URL}/claims/${paramId}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            const c = data?.data || data?.claim || data;
+            if (c) setClaimToEdit(c);
+          })
+          .catch((err) => console.error("Error loading claim to edit:", err));
+      }
+    }
+  }, [paramId, claims, claimToEdit]);
+
+  // Sync state when claimToEdit updates
+  useEffect(() => {
+    if (claimToEdit) {
+      if (claimToEdit.claimRefNo || claimToEdit.id) {
+        setClaimRefNo(claimToEdit.claimRefNo || claimToEdit.id);
+      }
+      setClaimantName(claimToEdit.claimantName || claimToEdit.claimant || currentUser || "");
+      setClaimType(claimToEdit.claimType || "Staff Expense");
+      setCompanyName(claimToEdit.companyName || "Halal Food Authority");
+      setContactPerson(claimToEdit.contactPerson || "");
+      setContactEmail(claimToEdit.contactEmail || "");
+      if (claimToEdit.filingDate || claimToEdit.date) {
+        const rawDate = claimToEdit.filingDate || claimToEdit.date;
+        const d = new Date(rawDate);
+        setClaimDate(!isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : rawDate);
+      }
+      if (Array.isArray(claimToEdit.reasons) && claimToEdit.reasons.length > 0) {
+        setReasons(
+          claimToEdit.reasons.map((r, idx) => ({
+            id: idx + 1,
+            option: typeof r === "string" ? r : r.option || "",
+            chg: Boolean(r.chg || r.chargeable),
+          }))
+        );
+      }
+      if (Array.isArray(claimToEdit.items) && claimToEdit.items.length > 0) {
+        setItems(
+          claimToEdit.items.map((i, idx) => ({
+            id: idx + 1,
+            type: i.type || "In Budget",
+            category: i.category || "",
+            currency: i.currency || "GBP",
+            payMode: i.payMode || "cash",
+            card: parseFloat(i.card) || 0,
+            cash: parseFloat(i.cash) || 0,
+            bank: parseFloat(i.bank) || 0,
+            vat: parseFloat(i.vat) || 0,
+            total: parseFloat(i.total) || 0,
+            note: i.note || "",
+          }))
+        );
+      }
+      if (Array.isArray(claimToEdit.attachments)) {
+        setExistingAttachments(claimToEdit.attachments);
+      }
+      if (claimToEdit.note || claimToEdit.notes || claimToEdit.officerNote) {
+        setClaimNote(claimToEdit.note || claimToEdit.notes || claimToEdit.officerNote || "");
+      }
+    }
+  }, [claimToEdit]);
+
+  const pendingHistoryEntry = Array.isArray(claimToEdit?.history)
+    ? [...claimToEdit.history].reverse().find((h) => (h.toStatus || "").toUpperCase() === "PENDING" && h.note)
+    : null;
+  const pendingReason =
+    pendingHistoryEntry?.note ||
+    claimToEdit?.officerNote ||
+    claimToEdit?.note ||
+    "A correction is required by the reviewing officer before this claim can proceed.";
 
   const CATEGORY_OPTIONS = [
     "Underground Ticket", "National Rail Ticket", "Taxi Fare", "Car Hire (inc, fuel)", "Car Millage", "Car Parking", "Fuel", "Air Fare", "Hotel Accommodation", "Lunch/Dinner", "Sundry", "Office Consumables", "Standards & Export Cert", "DHL To Dubai x2 ()", "Cash Advancement", "Other Deductions", "Telephone Expenses", "Audit Fee (External)", "Gym Allowance", "Currency exchange charges", "Charity", "HFF expense", "Rent & Rates", "Service Charges", "Office Expense", "Meeting fee", "Office Cleaning", "Remuneration Payments", "Scholars Fee", "Honorarium payments", "Postage", "Stationary exp", "Computer Repair", "Computer/IT Expense"
@@ -150,7 +278,11 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
   const handleClose = () => {
     if (propOnClose) propOnClose();
     if (closeClaimSheet) closeClaimSheet();
-    if (window.location.pathname === "/claims/new") navigate("/claims");
+    if (isEditing) {
+      navigate("/claims/pending");
+    } else if (window.location.pathname === "/claims/new") {
+      navigate("/claims");
+    }
   };
 
   const submitForm = async (e) => {
@@ -161,41 +293,77 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
     const primaryItem = items.find((i) => i.category) || items[0];
     const claimTitle = primaryItem.category ? `${primaryItem.category} Claim` : "General Expense Claim";
 
-    const result = await handleSubmitClaim({
-      claimantName: claimantName || currentUser || "User",
-      claimType: claimType || "Staff Expense",
-      filingDate: claimDate || new Date().toISOString().slice(0, 10),
-      companyName: companyName || "Halal Food Authority",
-      contactPerson: contactPerson || "",
-      contactEmail: contactEmail || "",
-      title: claimTitle,
-      reasons: reasons.map(r => ({ option: r.option, chg: r.chg || false })),
-      items: items.map(i => ({
-        type: i.type || "None",
-        category: i.category,
-        currency: i.currency || "GBP",
-        payMode: i.payMode || "cash",
-        card: parseFloat(i.card) || 0,
-        cash: parseFloat(i.cash) || 0,
-        vat: parseFloat(i.vat) || 0,
-        total: parseFloat(i.total) || 0,
-      })),
-      attachments: [],
-      note: claimNote,
-      notes: claimNote,
-      officerNote: claimNote,
-      subtotals: {
-        subtotalCard,
-        subtotalCash,
-        subtotalVat,
-        grandTotal
-      },
-      amount: grandTotal,
-      department: "Operations",
-    });
+    let result;
+    if (isEditing) {
+      result = await handleResubmitClaim(claimRefNo, {
+        claimantName: claimantName || currentUser || "User",
+        claimType: claimType || "Staff Expense",
+        filingDate: claimDate || new Date().toISOString().slice(0, 10),
+        companyName: companyName || "Halal Food Authority",
+        contactPerson: contactPerson || "",
+        contactEmail: contactEmail || "",
+        title: claimTitle,
+        reasons: reasons.map(r => ({ option: r.option, chg: r.chg || false })),
+        items: items.map(i => ({
+          type: i.type || "None",
+          category: i.category,
+          currency: i.currency || "GBP",
+          payMode: i.payMode || "cash",
+          card: parseFloat(i.card) || 0,
+          cash: parseFloat(i.cash) || 0,
+          vat: parseFloat(i.vat) || 0,
+          total: parseFloat(i.total) || 0,
+        })),
+        attachments: existingAttachments,
+        note: claimNote || `Corrections addressed for ${claimTitle}`,
+        notes: claimNote,
+        subtotals: {
+          subtotalCard,
+          subtotalCash,
+          subtotalVat,
+          grandTotal
+        },
+        amount: grandTotal,
+        department: "Operations",
+      });
+    } else {
+      result = await handleSubmitClaim({
+        claimantName: claimantName || currentUser || "User",
+        claimType: claimType || "Staff Expense",
+        filingDate: claimDate || new Date().toISOString().slice(0, 10),
+        companyName: companyName || "Halal Food Authority",
+        contactPerson: contactPerson || "",
+        contactEmail: contactEmail || "",
+        title: claimTitle,
+        reasons: reasons.map(r => ({ option: r.option, chg: r.chg || false })),
+        items: items.map(i => ({
+          type: i.type || "None",
+          category: i.category,
+          currency: i.currency || "GBP",
+          payMode: i.payMode || "cash",
+          card: parseFloat(i.card) || 0,
+          cash: parseFloat(i.cash) || 0,
+          vat: parseFloat(i.vat) || 0,
+          total: parseFloat(i.total) || 0,
+        })),
+        attachments: [],
+        note: claimNote,
+        notes: claimNote,
+        officerNote: claimNote,
+        subtotals: {
+          subtotalCard,
+          subtotalCash,
+          subtotalVat,
+          grandTotal
+        },
+        amount: grandTotal,
+        department: "Operations",
+      });
+    }
 
-    // ── Upload actual file binaries to GridFS after claim creation ──────────
-    if (result && result.success && result.claimRefNo) {
+    // ── Upload actual file binaries to GridFS after claim save ──────────
+    if (result && result.success && (result.claimRefNo || claimRefNo)) {
+      const targetRef = result.claimRefNo || claimRefNo;
       const filesWithBinary = uploadedFiles.filter(f => f.file instanceof File);
       if (filesWithBinary.length > 0) {
         try {
@@ -203,14 +371,14 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
           const token = stored ? (JSON.parse(stored)?.token || "") : "";
           const formData = new FormData();
           filesWithBinary.forEach(f => formData.append("files", f.file, f.name));
-          const uploadRes = await fetch(`${API_BASE_URL}/claims/${result.claimRefNo}/attachments`, {
+          const uploadRes = await fetch(`${API_BASE_URL}/claims/${targetRef}/attachments`, {
             method: "POST",
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             body: formData,
           });
           if (uploadRes.ok) {
             // Patch the claim in state with the newly created attachments
-            await refreshClaimAttachments(result.claimRefNo);
+            await refreshClaimAttachments(targetRef);
           }
         } catch (uploadErr) {
           console.warn("[Claim] File upload to GridFS failed:", uploadErr);
@@ -224,7 +392,9 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
       setSubmitted(true);
       setTimeout(() => {
         setSubmitted(false);
-        handleClose();
+        if (propOnClose) propOnClose();
+        if (closeClaimSheet) closeClaimSheet();
+        navigate(isEditing ? "/claims/new-list" : "/claims");
       }, 1500);
     } else {
       setSubmitError(result?.message || "Submission failed. Please try again.");
@@ -237,15 +407,24 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
       <div className="bg-gradient-to-r from-[#007A87] via-[#054D66] to-[#031B38] px-6 py-5 sm:px-8 text-white flex items-center justify-between relative overflow-hidden flex-shrink-0">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-1">
-            <span className="px-3 py-0.5 rounded-full bg-teal-400/20 text-teal-200 text-[11px] font-semibold tracking-wide border border-teal-300/30">
-              Claim Application Wizard
+          <div className="flex items-center gap-3 mb-1 flex-wrap">
+            <span className={`px-3 py-0.5 rounded-full text-[11px] font-semibold tracking-wide border ${
+              isEditing ? "bg-amber-400/20 text-amber-200 border-amber-300/30" : "bg-teal-400/20 text-teal-200 border-teal-300/30"
+            }`}>
+              {isEditing ? "Pending Claim Correction Wizard" : "Claim Application Wizard"}
             </span>
-            <span className="text-xs font-mono font-bold text-teal-100 bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/20">
+            <span className="text-xs font-mono font-bold text-teal-100 bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/20 select-all">
               {claimRefNo}
             </span>
+            {isEditing && (
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-amber-500 text-white shadow-xs">
+                Pending Correction
+              </span>
+            )}
           </div>
-          <h2 className="text-2xl font-extrabold tracking-tight">Submit New Claim</h2>
+          <h2 className="text-2xl font-extrabold tracking-tight">
+            {isEditing ? "Edit & Resubmit Pending Claim" : "Submit New Claim"}
+          </h2>
         </div>
 
         <button
@@ -257,6 +436,34 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
           <X size={22} />
         </button>
       </div>
+
+      {/* Pending Correction Notice Banner */}
+      {isEditing && (
+        <div className="mx-4 sm:mx-8 mt-5 p-4 sm:p-5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl shadow-xs">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
+              <AlertCircle size={22} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-900 bg-amber-200/90 px-2.5 py-0.5 rounded-md border border-amber-300">
+                  Correction Needed
+                </span>
+                <span className="text-xs font-bold text-slate-700">
+                  Claim Reference: <span className="font-mono text-teal-800 select-all">{claimRefNo}</span>
+                </span>
+              </div>
+              <div className="mt-2 p-3 bg-white rounded-xl border border-amber-200 text-xs font-medium text-slate-800 shadow-2xs">
+                <span className="font-bold text-amber-950 block mb-0.5">Reason why sent to Pending:</span>
+                <span className="text-slate-900 leading-relaxed">{pendingReason}</span>
+              </div>
+              <p className="text-xs text-amber-900 mt-2 font-medium">
+                Please edit and correct the claim details below (amounts, descriptions, categories, or add missing receipts), then proceed to Step 4 to <strong>Send Back to Submitted Claim</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Wizard Steps Header */}
       <div className="bg-slate-50 border-b border-slate-200 px-4 sm:px-8 py-3.5 flex-shrink-0">
@@ -844,6 +1051,39 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
                 </div>
               </div>
 
+              {/* Previously Uploaded Attachments (if editing) */}
+              {isEditing && existingAttachments && existingAttachments.length > 0 && (
+                <div className="p-4 bg-teal-50/60 rounded-2xl border border-teal-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-teal-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <FileText size={14} className="text-teal-700" />
+                      Previously Attached Documents ({existingAttachments.length})
+                    </span>
+                    <span className="text-[10px] font-semibold text-teal-700 bg-white px-2 py-0.5 rounded-md border border-teal-200">
+                      Kept with Claim
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    {existingAttachments.map((f, idx) => {
+                      const name = typeof f === "string" ? f : f.fileName || f.name || `Attachment ${idx + 1}`;
+                      const size = typeof f === "object" ? f.fileSize || "Attached file" : "Attached file";
+                      const date = typeof f === "object" ? (f.date || f.docDate || f.uploadDate || "") : "";
+                      return (
+                        <div key={idx} className="p-2.5 bg-white rounded-xl border border-teal-200/80 flex items-center justify-between gap-2 shadow-2xs">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="text-sm">📄</span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-slate-800 truncate" title={name}>{name}</p>
+                              <p className="text-[10px] text-slate-400">{size}{date ? ` • ${date}` : ""}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div
                 onDragEnter={handleDrag}
                 onDragOver={handleDrag}
@@ -1023,10 +1263,18 @@ export default function ManageClaimSheetPage({ onClose: propOnClose }) {
               type="button"
               disabled={submitting}
               onClick={submitForm}
-              className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 shadow-md transition-all cursor-pointer"
+              className={`flex items-center gap-2 px-7 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition-all cursor-pointer disabled:opacity-50 ${
+                isEditing
+                  ? "bg-teal-700 hover:bg-teal-800"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
             >
               <CheckCircle2 size={16} />
-              <span>{submitting ? "Submitting..." : "Submit Claim Application"}</span>
+              <span>
+                {submitting
+                  ? (isEditing ? "Submitting Corrections..." : "Submitting...")
+                  : (isEditing ? "Send Back to Submitted Claim" : "Submit Claim Application")}
+              </span>
             </button>
           )}
         </div>

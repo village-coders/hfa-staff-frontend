@@ -89,6 +89,7 @@ export default function DashboardPage() {
         icon: role === "super_admin" ? BarChart3 : CheckCircle2,
         accent: "#15803D",
         targetView: role === "super_admin" ? "reports" : "paid-list"
+      
       },
     ];
   }
@@ -113,8 +114,13 @@ export default function DashboardPage() {
   };
 
   const submitFeedback = () => {
+    const trimmed = (feedbackText || "").trim();
+    if (!trimmed) {
+      alert("Please provide a note/reason explaining why this claim requires correction before sending it to pending.");
+      return;
+    }
     if (feedbackClaim) {
-      handleTransition(feedbackClaim.id, "pending", feedbackText);
+      handleTransition(feedbackClaim.id, "pending", trimmed, "user");
       setFeedbackClaim(null);
       setFeedbackText("");
     }
@@ -245,19 +251,30 @@ export default function DashboardPage() {
       {feedbackClaim && createPortal(
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-in my-auto">
-            <h3 className="font-extrabold text-base text-slate-900 mb-1">Send to Pending</h3>
-            <p className="text-xs text-slate-500 font-medium mb-4">To {feedbackClaim.claimant || feedbackClaim.claimantName} regarding {feedbackClaim.id}.</p>
+            <h3 className="font-extrabold text-base text-slate-900 mb-1 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              Send to Pending (Correction Needed)
+            </h3>
+            <p className="text-xs text-slate-500 font-medium mb-3">
+              To {feedbackClaim.claimant || feedbackClaim.claimantName} regarding {feedbackClaim.id || feedbackClaim.claimRefNo}. The claimant will see this reason note and have an Edit button to correct and resubmit the claim.
+            </p>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Reason / Instructions for Claimant <span className="text-rose-500 font-bold">*</span>
+            </label>
             <textarea
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               rows={4}
-              placeholder="e.g. Please attach a valid receipt..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none mb-4 focus:border-teal-500 focus:bg-white transition-all resize-none"
+              placeholder="e.g. Please correct VAT calculation on receipt #2 and attach valid documentation, then send back to submitted claims..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-medium text-slate-800 outline-none mb-4 focus:border-amber-500 focus:bg-white transition-all resize-none"
             />
             <div className="flex justify-end gap-2.5">
               <button
                 type="button"
-                onClick={() => setFeedbackClaim(null)}
+                onClick={() => {
+                  setFeedbackClaim(null);
+                  setFeedbackText("");
+                }}
                 className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 Cancel
@@ -265,7 +282,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={submitFeedback}
-                className="px-5 py-2 text-xs font-bold rounded-xl text-white bg-teal-600 hover:bg-teal-700 shadow-md transition-colors cursor-pointer"
+                className="px-5 py-2 text-xs font-bold rounded-xl text-white bg-amber-600 hover:bg-amber-700 shadow-md transition-colors cursor-pointer"
               >
                 Send to Pending
               </button>

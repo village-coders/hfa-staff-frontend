@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   MoreVertical, X, Building2, Eye, Activity, BadgeCheck, Clock3,
   CircleDollarSign, Wallet, RotateCcw, AlertCircle, XCircle, Trash2,
-  CheckCircle2, Paperclip, FileText
+  CheckCircle2, Paperclip, FileText, FileEdit
 } from "lucide-react";
 import ConfirmModal from "../ui/ConfirmModal";
 import DocumentViewerModal from "./DocumentViewerModal";
@@ -471,7 +471,33 @@ export default function ClaimActions({
                   </div>
                 )}
 
-                {/* 7. Claimant Resubmit action */}
+                {/* 7a. Edit Pending Claim action */}
+                {currentStatus === "pending" && (role === "user" || isFO || role === "admin" || role === "super_admin") && (
+                  <div
+                    onClick={() => {
+                      close();
+                      navigate(`/claims/edit/${claim.id || claim.claimRefNo || claim._id}`, { state: { claimToEdit: claim } });
+                    }}
+                    className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border-2 border-amber-300 transition-all cursor-pointer flex items-center gap-3.5 group shadow-xs"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                      <FileEdit size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-amber-950">Edit & Correct Claim</h4>
+                        <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 border border-amber-300">
+                          Correction
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-900/90 font-medium mt-0.5">
+                        Modify expense items, amounts, or receipts and send back to Submitted
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 7b. Claimant Quick Resubmit action */}
                 {currentStatus === "pending" && (role === "user" || isFO) && (
                   <div
                     onClick={() =>
