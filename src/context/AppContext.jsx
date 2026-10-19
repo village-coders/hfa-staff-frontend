@@ -99,6 +99,11 @@ export function AppProvider({ children }) {
             items: (Array.isArray(data.items) && data.items.length > 0) ? data.items : (prev?.items || claim.items || []),
             reasons: (Array.isArray(data.reasons) && data.reasons.length > 0) ? data.reasons : (prev?.reasons || claim.reasons || []),
             note: data.note || data.notes || data.officerNote || prev?.note || claim.note || "",
+            companyName: data.companyName || prev?.companyName || claim.companyName || "Halal Food Authority",
+            filingDate: safeFormatDate(data.filingDate || data.createdAt || data.date || prev?.filingDate || claim.filingDate),
+            expenseDate: safeFormatDate(data.expenseDate || data.claimDate || data.filingDate || prev?.expenseDate || claim.expenseDate),
+            paidDate: safeFormatDate(data.paidDate || (Array.isArray(data.history) && [...data.history].reverse().find((h) => (h.toStatus || h.status || "").toLowerCase() === "paid")?.timestamp) || ((data.status || claim.status || "").toLowerCase() === "paid" ? (data.updatedAt || prev?.paidDate || claim.paidDate || data.date) : null)),
+            date: safeFormatDate(data.filingDate || data.claimDate || data.createdAt || data.date || prev?.date || claim.date),
             status: data.status ? (data.status.toLowerCase() === "new" ? "submitted" : data.status.toLowerCase()) : (prev?.status || claim.status || "submitted"),
           }));
         }
@@ -206,8 +211,12 @@ export function AppProvider({ children }) {
             const mapped = list.map((c) => ({
               _id: c._id,
               id: c.claimRefNo || c.claimNumber || c.id || c._id,
+              claimRefNo: c.claimRefNo || c.claimNumber || c.id || c._id,
+              claimantId: c.claimantId?._id || c.claimantId || "",
               claimant: c.claimantName || (c.claimantId && (c.claimantId.fullName || c.claimantId.name || c.claimantId.username)) || "User",
+              claimantName: c.claimantName || (c.claimantId && (c.claimantId.fullName || c.claimantId.name || c.claimantId.username)) || "User",
               dept: c.department || "Operations",
+              department: c.department || "Operations",
               title: c.claimType ? `${c.claimType} Claim` : c.title || "General Expense Claim",
               claimType: c.claimType || "Staff Expense",
               companyName: c.companyName || "Halal Food Authority",
@@ -219,6 +228,9 @@ export function AppProvider({ children }) {
               attachments: c.attachments || c.files || [],
               amount: (c.subtotals && c.subtotals.grandTotal) || c.totalClaimAmount || c.amount || 0,
               date: safeFormatDate(c.filingDate || c.claimDate || c.createdAt || c.date || c.updatedAt),
+              filingDate: safeFormatDate(c.filingDate || c.createdAt || c.date),
+              expenseDate: safeFormatDate(c.expenseDate || c.claimDate || c.filingDate || c.createdAt || c.date),
+              paidDate: safeFormatDate(c.paidDate || (Array.isArray(c.history) && [...c.history].reverse().find((h) => (h.toStatus || h.status || "").toLowerCase() === "paid")?.timestamp) || ((c.status || "").toLowerCase() === "paid" ? (c.updatedAt || c.date) : null)),
               status: c.status ? (c.status.toLowerCase() === "new" ? "submitted" : c.status.toLowerCase()) : "submitted",
               note: c.officerNote || c.feedbackNote || c.note || "",
               history: c.history || [],
@@ -399,10 +411,13 @@ export function AppProvider({ children }) {
             timestamp: new Date().toISOString(),
           };
           const updatedHistory = Array.isArray(c.history) ? [...c.history, newEntry] : [newEntry];
+          const isPaidTransition = normalizedTargetStatus === "paid";
+          const paidDateVal = isPaidTransition ? (c.paidDate || new Date().toISOString().slice(0, 10)) : c.paidDate;
           return {
             ...c,
             status: normalizedTargetStatus,
             note: note ?? c.note,
+            paidDate: paidDateVal,
             history: updatedHistory,
           };
         }
@@ -414,10 +429,13 @@ export function AppProvider({ children }) {
     setSelectedClaimForDetails((prev) => {
       if (!prev) return null;
       if (prev.id === id || prev._id === id) {
+        const isPaidTransition = normalizedTargetStatus === "paid";
+        const paidDateVal = isPaidTransition ? (prev.paidDate || new Date().toISOString().slice(0, 10)) : prev.paidDate;
         return {
           ...prev,
           status: normalizedTargetStatus,
           note: note ?? prev.note,
+          paidDate: paidDateVal,
         };
       }
       return prev;
@@ -519,8 +537,12 @@ export function AppProvider({ children }) {
         const mapped = list.map((c) => ({
           _id: c._id,
           id: c.claimRefNo || c.claimNumber || c.id || c._id,
+          claimRefNo: c.claimRefNo || c.claimNumber || c.id || c._id,
+          claimantId: c.claimantId?._id || c.claimantId || "",
           claimant: c.claimantName || (c.claimantId && (c.claimantId.fullName || c.claimantId.name || c.claimantId.username)) || "User",
+          claimantName: c.claimantName || (c.claimantId && (c.claimantId.fullName || c.claimantId.name || c.claimantId.username)) || "User",
           dept: c.department || "Operations",
+          department: c.department || "Operations",
           title: c.claimType ? `${c.claimType} Claim` : c.title || "General Expense Claim",
           claimType: c.claimType || "Staff Expense",
           companyName: c.companyName || "Halal Food Authority",
@@ -532,6 +554,9 @@ export function AppProvider({ children }) {
           attachments: c.attachments || c.files || [],
           amount: (c.subtotals && c.subtotals.grandTotal) || c.totalClaimAmount || c.amount || 0,
           date: safeFormatDate(c.filingDate || c.claimDate || c.createdAt || c.date || c.updatedAt),
+          filingDate: safeFormatDate(c.filingDate || c.createdAt || c.date),
+          expenseDate: safeFormatDate(c.expenseDate || c.claimDate || c.filingDate || c.createdAt || c.date),
+          paidDate: safeFormatDate(c.paidDate || (Array.isArray(c.history) && [...c.history].reverse().find((h) => (h.toStatus || h.status || "").toLowerCase() === "paid")?.timestamp) || ((c.status || "").toLowerCase() === "paid" ? (c.updatedAt || c.date) : null)),
           deletedAt: safeFormatDate(c.deletedAt || c.updatedAt),
           deletedBy: c.deletedBy || "super_admin",
           previousStatus: c.previousStatus || "submitted",
@@ -656,8 +681,12 @@ export function AppProvider({ children }) {
         const mappedClaim = {
           _id: serverClaim._id,
           id: serverClaim.claimRefNo || serverClaim.claimNumber || serverClaim.id || serverClaim._id,
+          claimRefNo: serverClaim.claimRefNo || serverClaim.claimNumber || serverClaim.id || serverClaim._id,
+          claimantId: serverClaim.claimantId?._id || serverClaim.claimantId || "",
           claimant: serverClaim.claimantName || claimPayload.claimantName || loggedInUser?.name || "User",
+          claimantName: serverClaim.claimantName || claimPayload.claimantName || loggedInUser?.name || "User",
           dept: serverClaim.department || "Operations",
+          department: serverClaim.department || "Operations",
           title: serverClaim.claimType ? `${serverClaim.claimType} Claim` : claimPayload.title || "General Expense Claim",
           claimType: serverClaim.claimType || claimPayload.claimType || "Staff Expense",
           companyName: serverClaim.companyName || claimPayload.companyName || "Halal Food Authority",
@@ -673,6 +702,12 @@ export function AppProvider({ children }) {
           date: serverClaim.filingDate
             ? new Date(serverClaim.filingDate).toISOString().slice(0, 10)
             : new Date().toISOString().slice(0, 10),
+          filingDate: serverClaim.filingDate
+            ? new Date(serverClaim.filingDate).toISOString().slice(0, 10)
+            : (claimPayload.filingDate || new Date().toISOString().slice(0, 10)),
+          expenseDate: serverClaim.expenseDate
+            ? new Date(serverClaim.expenseDate).toISOString().slice(0, 10)
+            : (claimPayload.expenseDate || claimPayload.filingDate || new Date().toISOString().slice(0, 10)),
           status: serverClaim.status ? (serverClaim.status.toLowerCase() === "new" ? "submitted" : serverClaim.status.toLowerCase()) : "submitted",
           note: serverClaim.note || serverClaim.notes || serverClaim.officerNote || claimPayload.note || "",
         };

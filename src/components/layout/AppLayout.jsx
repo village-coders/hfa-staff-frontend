@@ -6,6 +6,7 @@ import { useApp } from "../../context/AppContext";
 import ClaimDetailsModal from "../claims/ClaimDetailsModal";
 import LoadingScreen from "../ui/LoadingScreen";
 import ToastContainer from "../ui/Toast";
+import ErrorBoundary from "../ui/ErrorBoundary";
 
 export default function AppLayout() {
   const {
@@ -49,7 +50,9 @@ export default function AppLayout() {
         />
 
         <main className="p-3 sm:p-6 flex-1 overflow-y-auto">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 

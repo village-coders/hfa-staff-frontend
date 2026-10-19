@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Search, FileEdit, AlertCircle } from "lucide-react";
+import { Search, FileEdit, AlertCircle, X } from "lucide-react";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/ui/EmptyState";
 import Pagination from "../components/ui/Pagination";
@@ -33,13 +33,49 @@ export default function ClaimsPage() {
 
   const viewKey = PATH_TO_VIEW[location.pathname] || "all-claims-list";
   const item = CLAIM_ITEMS.find((i) => i.key === viewKey) || CLAIM_ITEMS[1];
+  const isPaidView = viewKey === "paid-list" || item?.status === "paid";
+
+  const getPaidDate = (c) => {
+    if (!c) return "N/A";
+    if (c.paidDate) return c.paidDate;
+    if (Array.isArray(c.history)) {
+      const paidEntry = [...c.history].reverse().find(
+        (h) => (h.toStatus || h.status || "").toLowerCase() === "paid"
+      );
+      if (paidEntry && (paidEntry.timestamp || paidEntry.date)) {
+        const d = new Date(paidEntry.timestamp || paidEntry.date);
+        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+      }
+    }
+    if ((c.status || "").toLowerCase() === "paid") {
+      if (c.updatedAt) {
+        const d = new Date(c.updatedAt);
+        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+      }
+      return c.filingDate || c.date || "N/A";
+    }
+    return "N/A";
+  };
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("search") || "";
+  });
   const [feedbackClaim, setFeedbackClaim] = useState(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [selectedClaimForDetails, setSelectedClaimForDetails] = useState(null);
+
+  // Sync state if URL query param changes
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const qParam = params.get("search") || "";
+    if (qParam !== search) {
+      setSearch(qParam);
+      setPage(1);
+    }
+  }, [location.search]);
 
   let filtered = viewKey === "all-claims-list"
     ? (claims || [])
@@ -102,15 +138,45 @@ export default function ClaimsPage() {
     );
   }
 
-  if (search) {
-    const q = search.toLowerCase();
-    filtered = filtered.filter(
-      (c) =>
-        c &&
-        (((c.claimant || c.claimantName || "").toLowerCase().includes(q)) ||
-          ((c.id || c.claimRefNo || "").toLowerCase().includes(q)) ||
-          ((c.title || "").toLowerCase().includes(q)))
-    );
+  if (search && search.trim()) {
+    const q = search.trim().toLowerCase();
+    filtered = filtered.filter((c) => {
+      if (!c) return false;
+      const cRef = String(c.id || c.claimRefNo || "").toLowerCase();
+      const claimantStr = typeof c.claimant === "string"
+        ? c.claimant
+        : (c.claimant?.fullName || c.claimant?.name || c.claimant?.username || c.claimantName || "");
+      const claimant = String(claimantStr).toLowerCase();
+      const claimantId = String(
+        typeof c.claimantId === "object"
+          ? (c.claimantId?._id || c.claimantId?.username || c.claimantId?.name || "")
+          : (c.claimantId || "")
+      ).toLowerCase();
+      const company = String(c.companyName || "").toLowerCase();
+      const title = String(c.title || "").toLowerCase();
+      const dept = String(c.dept || c.department || "").toLowerCase();
+      const claimType = String(c.claimType || "").toLowerCase();
+      const contact = String(c.contactPerson || "").toLowerCase();
+      const itemsMatch = Array.isArray(c.items) && c.items.some((it) =>
+        String(it?.description || it?.desc || it?.name || "").toLowerCase().includes(q)
+      );
+      const reasonsMatch = Array.isArray(c.reasons) && c.reasons.some((r) =>
+        String(typeof r === "string" ? r : (r?.reason || r?.description || "")).toLowerCase().includes(q)
+      );
+
+      return (
+        cRef.includes(q) ||
+        claimant.includes(q) ||
+        claimantId.includes(q) ||
+        company.includes(q) ||
+        title.includes(q) ||
+        dept.includes(q) ||
+        claimType.includes(q) ||
+        contact.includes(q) ||
+        itemsMatch ||
+        reasonsMatch
+      );
+    });
   }
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -151,14 +217,24 @@ export default function ClaimsPage() {
           <h2 className="text-lg font-bold text-slate-900">{item.label}</h2>
           <p className="text-xs text-slate-500 font-medium">{countSubtitle}</p>
         </div>
-        <div className="flex items-center rounded-xl border border-slate-200 px-3.5 py-2 bg-white w-full sm:w-64 shadow-sm">
-          <Search size={15} className="text-slate-400" />
+        <div className="flex items-center rounded-xl border border-slate-200 px-3.5 py-2 bg-white w-full sm:w-72 shadow-sm">
+          <Search size={15} className="text-slate-400 flex-shrink-0" />
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search claimant, ID..."
+            placeholder="Search company, claimant, ID..."
             className="ml-2 text-xs outline-none w-full bg-white text-slate-800 font-medium"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => { setSearch(""); setPage(1); }}
+              className="p-0.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 flex-shrink-0 cursor-pointer"
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -170,7 +246,15 @@ export default function ClaimsPage() {
               <p className="text-xs text-slate-500 font-medium">Loading claims…</p>
             </div>
           ) : (
-            <EmptyState icon={item.icon} title="Nothing here yet" subtitle={`No claims currently sit in ${item.label.toLowerCase()}.`} />
+            <EmptyState
+              icon={item.icon}
+              title={search ? "No matching claims found" : "Nothing here yet"}
+              subtitle={
+                search
+                  ? `No records match "${search}". Try searching by another keyword, ID, claimant or company.`
+                  : `No claims currently sit in ${item.label.toLowerCase()}.`
+              }
+            />
           )
         ) : (
           <>
@@ -200,10 +284,22 @@ export default function ClaimsPage() {
                       {c.companyName || c.contactPerson || "—"}
                     </p>
 
-                    {/* Claimant + Date */}
-                    <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                      <span className="font-medium text-slate-700">{c.claimant || c.claimantName || "User"}</span>
-                      <span>{c.date || "N/A"}</span>
+                    {/* Claimant + Dates */}
+                    <div className="flex items-center justify-between text-xs text-slate-700 mb-1">
+                      <span className="font-semibold text-slate-800">{c.claimant || c.claimantName || "User"}</span>
+                      {isPaidView ? (
+                        <span className="text-[11px] text-emerald-850 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-emerald-800">
+                          Paid: {getPaidDate(c)}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-teal-800 font-bold bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                          Exp: {c.expenseDate || c.filingDate || c.date || "—"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2">
+                      <span className="truncate max-w-[160px] text-slate-500">{c.title || "Claim"}</span>
+                      <span>Filed: {c.filingDate || c.date || "—"}</span>
                     </div>
 
                     {/* Pending Correction Banner on Mobile */}
@@ -272,9 +368,10 @@ export default function ClaimsPage() {
                   <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                     <th className="text-left px-4 py-3 w-32 whitespace-nowrap">Claim ID</th>
                     <th className="text-left px-4 py-3 min-w-[220px]">Company Name</th>
-                    <th className="text-left px-4 py-3 w-40 whitespace-nowrap">Claimant</th>
+                    <th className="text-left px-4 py-3 w-36 whitespace-nowrap">Claimant</th>
                     <th className="text-left px-4 py-3 w-28 whitespace-nowrap">Amount</th>
-                    <th className="text-left px-4 py-3 w-28 whitespace-nowrap">Date</th>
+                    <th className="text-left px-4 py-3 w-28 whitespace-nowrap">Filing Date</th>
+                    <th className="text-left px-4 py-3 w-28 whitespace-nowrap">{isPaidView ? "Paid Date" : "Expense Date"}</th>
                     <th className="text-left px-3 py-3 w-32 whitespace-nowrap">Status</th>
                     <th className="text-center px-3 py-3 w-16 whitespace-nowrap">Action</th>
                   </tr>
@@ -315,8 +412,19 @@ export default function ClaimsPage() {
                         <td className="px-4 py-3.5 font-semibold text-slate-900 whitespace-nowrap">
                           {fmtN(c.amount || 0)}
                         </td>
-                        <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">
-                          {c.date || "N/A"}
+                        <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">
+                          {c.filingDate || c.date || "N/A"}
+                        </td>
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          {isPaidView ? (
+                            <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200 inline-block text-[11px]">
+                              {getPaidDate(c)}
+                            </span>
+                          ) : (
+                            <span className="font-bold text-teal-900 bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-200/80 inline-block text-[11px]">
+                              {c.expenseDate || c.filingDate || c.date || "N/A"}
+                            </span>
+                          )}
                         </td>
                         <td className="px-3 py-3.5 whitespace-nowrap">
                           <StatusBadge status={c.status || "new"} />

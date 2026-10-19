@@ -21,6 +21,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [viewingFile, setViewingFile] = useState(null);
+  const [viewingItemNote, setViewingItemNote] = useState(null);
 
   if (!claim) return null;
 
@@ -210,11 +211,43 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Filing Date</p>
-                    <p className="font-bold text-xs text-slate-900 mt-0.5 truncate">{claim.date || "N/A"}</p>
+                    <p className="font-bold text-xs text-slate-900 mt-0.5 truncate" title={claim.filingDate || claim.date}>
+                      {claim.filingDate || claim.date || "N/A"}
+                    </p>
                   </div>
                 </div>
 
                 <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-2.5">
+                  <div className="p-2 rounded-xl bg-teal-50 text-teal-700 mt-0.5 flex-shrink-0">
+                    <Calendar size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-teal-700 font-bold uppercase tracking-wider">Expense Date</p>
+                    <p className="font-bold text-xs text-slate-900 mt-0.5 truncate" title={claim.expenseDate || claim.filingDate || claim.date}>
+                      {claim.expenseDate || claim.filingDate || claim.date || "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                {(claim.status || "").toLowerCase() === "paid" && (
+                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-start gap-2.5">
+                    <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 mt-0.5 flex-shrink-0">
+                      <Calendar size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Paid Date</p>
+                      <p className="font-bold text-xs text-emerald-900 mt-0.5 truncate" title={claim.paidDate}>
+                        {claim.paidDate ||
+                          (Array.isArray(claim.history) &&
+                            [...claim.history].reverse().find((h) => (h.toStatus || h.status || "").toLowerCase() === "paid")?.timestamp?.slice(0, 10)) ||
+                          claim.updatedAt?.slice(0, 10) ||
+                          "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-2.5 col-span-2">
                   <div className="p-2 rounded-xl bg-indigo-50 text-indigo-700 mt-0.5 flex-shrink-0">
                     <Tag size={15} />
                   </div>
@@ -624,6 +657,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                             <th className="text-right px-3 py-2.5">Cash</th>
                             <th className="text-right px-3 py-2.5">VAT</th>
                             <th className="text-right px-4 py-2.5">Total Amount</th>
+                            <th className="text-center px-3 py-2.5">Item Note</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
@@ -641,6 +675,21 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                                 <td className="px-4 py-2.5 text-right font-extrabold text-teal-800">
                                   {fmtCurrency(item.total || item.amount || 0, symbol)}
                                 </td>
+                                <td className="px-3 py-2.5 text-center">
+                                  {item.note && item.note.trim() ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setViewingItemNote(item)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
+                                      title={item.note}
+                                    >
+                                      <MessageSquare size={12} className="text-teal-600" />
+                                      <span>View Note</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-slate-300 font-mono text-xs">—</span>
+                                  )}
+                                </td>
                               </tr>
                             );
                           })}
@@ -656,6 +705,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                             <td className="px-4 py-2.5 text-right font-black text-teal-900 text-sm">
                               {fmtCurrency(grandTotal)}
                             </td>
+                            <td></td>
                           </tr>
                         </tfoot>
                       </table>
@@ -1052,6 +1102,58 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                 className="px-5 py-2 text-xs font-bold rounded-xl text-white bg-amber-600 hover:bg-amber-700 transition-colors cursor-pointer shadow-sm"
               >
                 Confirm Send to Pending
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Item Note Modal */}
+      {viewingItemNote && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[65] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-in my-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
+                  <MessageSquare size={16} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">
+                    Expense Item Note
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {viewingItemNote.category || viewingItemNote.description || "Expense Line Item"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingItemNote(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer transition-colors"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 mb-4">
+              <p className="text-xs text-slate-800 font-medium whitespace-pre-wrap leading-relaxed">
+                {viewingItemNote.note}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-4 font-medium px-1">
+              <span>Amount: <strong className="text-slate-900">{fmtCurrency(viewingItemNote.total || viewingItemNote.amount || 0, CURRENCY_SYMBOLS[viewingItemNote.currency] || "£")}</strong></span>
+              <span>Type: <strong className="text-slate-900">{viewingItemNote.type || "In Budget"}</strong></span>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setViewingItemNote(null)}
+                className="px-5 py-2 text-xs font-bold rounded-xl text-white bg-teal-600 hover:bg-teal-700 transition-colors cursor-pointer shadow-xs"
+              >
+                Close Note
               </button>
             </div>
           </div>

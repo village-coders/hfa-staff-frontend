@@ -71,6 +71,8 @@ export const PATH_TO_VIEW = {
   "/dashboard": "dashboard",
   "/claims/new": "manage-claim-sheet",
   "/claims": "all-claims-list",
+  "/claims/all": "all-claims-list",
+  "/claims/all-list": "all-claims-list",
   "/claims/new-list": "new-claim-list",
   "/claims/verified": "verified-list",
   "/claims/approved": "approved-for-payment",

@@ -29,6 +29,8 @@ export default function App() {
 
             {/* Claims Routes */}
             <Route path="/claims" element={<ClaimsPage />} />
+            <Route path="/claims/all" element={<ClaimsPage />} />
+            <Route path="/claims/all-list" element={<ClaimsPage />} />
             <Route path="/claims/new" element={<ManageClaimSheetPage />} />
             <Route path="/claims/edit/:id" element={<ManageClaimSheetPage />} />
             <Route path="/claims/new-list" element={<ClaimsPage />} />

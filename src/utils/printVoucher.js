@@ -372,9 +372,18 @@ export function printClaimVoucher(claim) {
         <div class="meta-val">${claim.dept || claim.department || "Operations"}</div>
       </div>
       <div class="meta-item">
-        <div class="meta-label">Filing Date</div>
-        <div class="meta-val">${formatDate(claim.date || claim.filingDate)}</div>
+        <div class="meta-label">Filing Date (Submission)</div>
+        <div class="meta-val">${formatDate(claim.filingDate || claim.date)}</div>
       </div>
+      <div class="meta-item">
+        <div class="meta-label">Expense Date (Incurred)</div>
+        <div class="meta-val" style="color: #007A87;">${formatDate(claim.expenseDate || claim.filingDate || claim.date)}</div>
+      </div>
+      ${(claim.status || "").toLowerCase() === "paid" ? `
+      <div class="meta-item">
+        <div class="meta-label" style="color: #065f46;">Paid Date</div>
+        <div class="meta-val" style="color: #065f46; font-weight: 700;">${formatDate(claim.paidDate || (Array.isArray(claim.history) && [...claim.history].reverse().find((h) => (h.toStatus || h.status || "").toLowerCase() === "paid")?.timestamp) || claim.updatedAt || "")}</div>
+      </div>` : ""}
       <div class="meta-item">
         <div class="meta-label">Company Name</div>
         <div class="meta-val">${claim.companyName || "Halal Food Authority"}</div>
@@ -383,7 +392,7 @@ export function printClaimVoucher(claim) {
         <div class="meta-label">Claim Type</div>
         <div class="meta-val">${claim.claimType || "Staff Expense"}</div>
       </div>
-      <div class="meta-item">
+      <div class="meta-item" style="grid-column: span 3;">
         <div class="meta-label">Contact Person</div>
         <div class="meta-val">${claim.contactPerson || "—"} ${claim.contactEmail ? `(${claim.contactEmail})` : ""}</div>
       </div>
@@ -409,11 +418,12 @@ export function printClaimVoucher(claim) {
         <tr>
           <th style="width: 25px;">#</th>
           <th>Description / Category</th>
-          <th style="width: 90px;">Budget Type</th>
-          <th class="text-right" style="width: 70px;">Credit Card</th>
-          <th class="text-right" style="width: 70px;">Cash</th>
-          <th class="text-right" style="width: 55px;">VAT</th>
-          <th class="text-right" style="width: 80px;">Total Amount</th>
+          <th style="width: 85px;">Budget Type</th>
+          <th class="text-right" style="width: 65px;">Credit Card</th>
+          <th class="text-right" style="width: 65px;">Cash</th>
+          <th class="text-right" style="width: 50px;">VAT</th>
+          <th class="text-right" style="width: 75px;">Total Amount</th>
+          <th style="width: 100px;">Note / Remark</th>
         </tr>
       </thead>
       <tbody>
@@ -426,10 +436,11 @@ export function printClaimVoucher(claim) {
             <td class="text-right">${it.cash ? fmtMoney(it.cash, sym) : "—"}</td>
             <td class="text-right">${it.vat ? fmtMoney(it.vat, sym) : "—"}</td>
             <td class="text-right"><strong>${fmtMoney(it.total || it.amount || 0, sym)}</strong></td>
+            <td>${it.note ? `<span style="font-size: 9px; color: #334155;">${it.note}</span>` : "—"}</td>
           </tr>
         `).join("") : `
           <tr>
-            <td colspan="7" style="text-align: center; color: #64748b;">No individual line items listed.</td>
+            <td colspan="8" style="text-align: center; color: #64748b;">No individual line items listed.</td>
           </tr>
         `}
       </tbody>
@@ -440,6 +451,7 @@ export function printClaimVoucher(claim) {
           <td class="text-right">${fmtMoney(cashSubtotal, sym)}</td>
           <td class="text-right">${fmtMoney(vatSubtotal, sym)}</td>
           <td class="text-right" style="font-size: 11px; color: #007A87;">${fmtMoney(grandTotal, sym)}</td>
+          <td></td>
         </tr>
       </tfoot>
     </table>

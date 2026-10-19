@@ -65,7 +65,18 @@ export default function DashboardClaimRow({
           {fmtN(claim.amount || 0)}
         </td>
         <td className="px-5 py-4 text-slate-500 whitespace-nowrap">
-          {claim.date || "N/A"}
+          <div className="text-xs font-semibold text-slate-800">
+            {claim.filingDate || claim.date || "N/A"}
+          </div>
+          {(claim.status || "").toLowerCase() === "paid" ? (
+            <div className="text-[11px] font-bold text-emerald-700 mt-0.5">
+              Paid: {claim.paidDate || (Array.isArray(claim.history) && [...claim.history].reverse().find((h) => (h.toStatus || h.status || "").toLowerCase() === "paid")?.timestamp?.slice(0, 10)) || claim.updatedAt?.slice(0, 10) || "—"}
+            </div>
+          ) : (
+            <div className="text-[11px] font-bold text-teal-700 mt-0.5">
+              Exp: {claim.expenseDate || claim.filingDate || claim.date || "—"}
+            </div>
+          )}
         </td>
         <td className="px-3 py-4 whitespace-nowrap">
           <StatusBadge status={claim.status || "new"} />
@@ -121,12 +132,24 @@ export default function DashboardClaimRow({
               {claim.companyName || claim.contactPerson || "—"}
             </p>
 
-            {/* Claimant + Date */}
-            <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-              <span className="font-medium text-slate-700">
+            {/* Claimant + Dates */}
+            <div className="flex items-center justify-between text-xs text-slate-700 mb-1">
+              <span className="font-semibold text-slate-800">
                 {claim.claimant || claim.claimantName || "User"}
               </span>
-              <span>{claim.date || "N/A"}</span>
+              {(claim.status || "").toLowerCase() === "paid" ? (
+                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Paid: {claim.paidDate || (Array.isArray(claim.history) && [...claim.history].reverse().find((h) => (h.toStatus || h.status || "").toLowerCase() === "paid")?.timestamp?.slice(0, 10)) || claim.updatedAt?.slice(0, 10) || "—"}
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                  Exp: {claim.expenseDate || claim.filingDate || claim.date || "—"}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-2">
+              <span className="truncate max-w-[160px] text-slate-500">{claim.title || "Claim"}</span>
+              <span>Filed: {claim.filingDate || claim.date || "—"}</span>
             </div>
 
             {/* Pending Reason Banner on Mobile */}

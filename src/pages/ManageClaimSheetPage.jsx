@@ -41,9 +41,23 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
   const [companyName, setCompanyName] = useState(() => (initialClaim?.companyName || "Halal Food Authority"));
   const [contactPerson, setContactPerson] = useState(() => (initialClaim?.contactPerson || ""));
   const [contactEmail, setContactEmail] = useState(() => (initialClaim?.contactEmail || ""));
-  const [claimDate, setClaimDate] = useState(() => {
+  const [filingDate, setFilingDate] = useState(() => {
     if (initialClaim?.filingDate || initialClaim?.date) {
       const raw = initialClaim.filingDate || initialClaim.date;
+      const d = new Date(raw);
+      return !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : raw;
+    }
+    return new Date().toISOString().slice(0, 10);
+  });
+
+  const [expenseDate, setExpenseDate] = useState(() => {
+    if (initialClaim?.expenseDate) {
+      const raw = initialClaim.expenseDate;
+      const d = new Date(raw);
+      return !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : raw;
+    }
+    if (initialClaim?.date || initialClaim?.filingDate) {
+      const raw = initialClaim.date || initialClaim.filingDate;
       const d = new Date(raw);
       return !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : raw;
     }
@@ -128,9 +142,18 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
       setContactPerson(claimToEdit.contactPerson || "");
       setContactEmail(claimToEdit.contactEmail || "");
       if (claimToEdit.filingDate || claimToEdit.date) {
+        const rawFiling = claimToEdit.filingDate || claimToEdit.date;
+        const d = new Date(rawFiling);
+        setFilingDate(!isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : rawFiling);
+      }
+      if (claimToEdit.expenseDate) {
+        const rawDate = claimToEdit.expenseDate;
+        const d = new Date(rawDate);
+        setExpenseDate(!isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : rawDate);
+      } else if (claimToEdit.filingDate || claimToEdit.date) {
         const rawDate = claimToEdit.filingDate || claimToEdit.date;
         const d = new Date(rawDate);
-        setClaimDate(!isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : rawDate);
+        setExpenseDate(!isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : rawDate);
       }
       if (Array.isArray(claimToEdit.reasons) && claimToEdit.reasons.length > 0) {
         setReasons(
@@ -187,7 +210,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
   const updateReason = (id, field, value) => { setReasons(reasons.map((r) => (r.id === id ? { ...r, [field]: value } : r))); };
 
   const addItemRow = () => {
-    setItems([...items, { id: Date.now(), type: "In Budget", category: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0 }]);
+    setItems([...items, { id: Date.now(), type: "In Budget", category: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0, note: "" }]);
   };
   const removeItemRow = (id) => { if (items.length > 1) setItems(items.filter((item) => item.id !== id)); };
 
@@ -220,7 +243,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
         file: f,
         name: f.name,
         size: (f.size / 1024).toFixed(1) + " KB",
-        docDate: claimDate || new Date().toISOString().slice(0, 10),
+        docDate: expenseDate || filingDate || new Date().toISOString().slice(0, 10),
       })),
     ]);
   };
@@ -248,7 +271,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
     if (step === 1) {
       if (!claimantName.trim()) { alert("Please enter Claimant Name."); return; }
       if (!claimType.trim()) { alert("Please select a Claim Type."); return; }
-      if (!claimDate) { alert("Please select a Filing Date."); return; }
+      if (!expenseDate) { alert("Please select an Expense Incurred Date."); return; }
       if (!companyName.trim()) { alert("Please enter Company Name."); return; }
       if (!contactPerson.trim()) { alert("Please enter Contact Person."); return; }
       if (!contactEmail.trim()) { alert("Please enter Contact Email."); return; }
@@ -293,12 +316,17 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
     const primaryItem = items.find((i) => i.category) || items[0];
     const claimTitle = primaryItem.category ? `${primaryItem.category} Claim` : "General Expense Claim";
 
+    const effectiveFilingDate = (role === "super_admin" && filingDate)
+      ? filingDate
+      : (isEditing ? (initialClaim?.filingDate || initialClaim?.date || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10));
+
     let result;
     if (isEditing) {
       result = await handleResubmitClaim(claimRefNo, {
         claimantName: claimantName || currentUser || "User",
         claimType: claimType || "Staff Expense",
-        filingDate: claimDate || new Date().toISOString().slice(0, 10),
+        filingDate: effectiveFilingDate,
+        expenseDate: expenseDate || effectiveFilingDate,
         companyName: companyName || "Halal Food Authority",
         contactPerson: contactPerson || "",
         contactEmail: contactEmail || "",
@@ -313,6 +341,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
           cash: parseFloat(i.cash) || 0,
           vat: parseFloat(i.vat) || 0,
           total: parseFloat(i.total) || 0,
+          note: i.note || "",
         })),
         attachments: existingAttachments,
         note: claimNote || `Corrections addressed for ${claimTitle}`,
@@ -330,7 +359,8 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
       result = await handleSubmitClaim({
         claimantName: claimantName || currentUser || "User",
         claimType: claimType || "Staff Expense",
-        filingDate: claimDate || new Date().toISOString().slice(0, 10),
+        filingDate: effectiveFilingDate,
+        expenseDate: expenseDate || effectiveFilingDate,
         companyName: companyName || "Halal Food Authority",
         contactPerson: contactPerson || "",
         contactEmail: contactEmail || "",
@@ -345,6 +375,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
           cash: parseFloat(i.cash) || 0,
           vat: parseFloat(i.vat) || 0,
           total: parseFloat(i.total) || 0,
+          note: i.note || "",
         })),
         attachments: [],
         note: claimNote,
@@ -531,8 +562,45 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">Claimant & Organization Details</h3>
-                <p className="text-xs text-slate-500 font-normal">Basic claimant identification and organizational routing.</p>
+                <p className="text-xs text-slate-500 font-normal">Basic claimant identification, date expense was incurred, and organizational routing.</p>
               </div>
+            </div>
+
+            {/* Top Filing Date Banner (Auto-generated submission date - Not Changeable by staff) */}
+            <div className="bg-gradient-to-r from-teal-50 via-slate-50 to-emerald-50/50 border border-teal-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow-xs flex-shrink-0">
+                  <Calendar size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-800 bg-teal-100/90 px-2.5 py-0.5 rounded-md border border-teal-200">
+                      Official Filing Date
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      (Claim Submission Date • Stamped automatically • Non-changeable)
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-slate-900 mt-0.5 font-mono">
+                    {filingDate ? new Date(filingDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                    <span className="text-xs font-normal text-slate-500 ml-2">[{filingDate || new Date().toISOString().slice(0, 10)}]</span>
+                  </p>
+                </div>
+              </div>
+              {role === "super_admin" && (
+                <div className="flex items-center gap-2 self-start sm:self-center bg-white px-3 py-1.5 rounded-xl border border-teal-200 shadow-2xs">
+                  <span className="text-[10px] font-bold text-teal-800 flex items-center gap-1">
+                    <ShieldCheck size={12} className="text-teal-600" /> Super Admin Override:
+                  </span>
+                  <input
+                    type="date"
+                    value={filingDate}
+                    onChange={(e) => setFilingDate(e.target.value)}
+                    className="border border-teal-300 rounded-lg px-2 py-0.5 text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-teal-500/20 bg-slate-50"
+                    title="Super Admin override for Filing Date"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -576,41 +644,22 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
                 </select>
               </div>
 
-              {/* Automatic Filing Date (Backdatable strictly by Super Admin) */}
+              {/* Expense Incurred Date */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-700 block">
-                    Filing Date <span className="text-rose-500 font-bold">*</span>
-                  </label>
-                  {role === "super_admin" ? (
-                    <span className="text-[10px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200 flex items-center gap-1">
-                      <ShieldCheck size={11} className="text-teal-600" />
-                      
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                      Auto-generated Today
-                    </span>
-                  )}
-                </div>
+                <label className="text-xs font-bold text-slate-700 block mb-2">
+                  Expense Incurred Date <span className="text-rose-500 font-bold">*</span>
+                </label>
                 <input
                   type="date"
                   required
-                  value={claimDate}
-                  disabled={role !== "super_admin"}
-                  onChange={(e) => setClaimDate(e.target.value)}
-                  className={`w-full border rounded-xl px-4 py-3 text-xs font-semibold outline-none transition-all ${
-                    role === "super_admin"
-                      ? "border-teal-300 bg-white text-slate-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 shadow-2xs"
-                      : "border-slate-200 bg-slate-100/90 text-slate-500 cursor-not-allowed"
-                  }`}
-                  title={role === "super_admin" ? "Super Admin can backdate filing date" : "Filing date is automatically assigned to current date"}
+                  value={expenseDate}
+                  onChange={(e) => setExpenseDate(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white shadow-2xs"
+                  title="Select the actual date when the expenditure was incurred"
                 />
-                {role !== "super_admin" && (
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Automatically assigned to current date. Only Super Admin has privilege to backdate.
-                  </p>
-                )}
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Specify the date when this expenditure took place.
+                </p>
               </div>
             </div>
 
@@ -770,6 +819,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
                     <th className="text-right px-3 py-3.5 w-28 whitespace-nowrap">Cash</th>
                     <th className="text-right px-3 py-3.5 w-24 whitespace-nowrap">VAT</th>
                     <th className="text-right px-4 py-3.5 w-28 whitespace-nowrap">Total</th>
+                    <th className="text-left px-3.5 py-3.5 min-w-[200px] whitespace-nowrap">Note / Remark</th>
                     <th className="text-center px-3 py-3.5 w-16 whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
@@ -847,6 +897,15 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
                       <td className="p-3 text-right font-bold text-slate-900 text-xs">
                         {fmtCurrency(item.total, CURRENCY_SYMBOLS[item.currency] || "£")}
                       </td>
+                      <td className="p-3">
+                        <input
+                          type="text"
+                          value={item.note || ""}
+                          onChange={(e) => updateItem(item.id, "note", e.target.value)}
+                          placeholder="Note for this item..."
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-teal-500 bg-white shadow-2xs"
+                        />
+                      </td>
                       <td className="p-2.5 text-center">
                         {items.length > 1 ? (
                           <button
@@ -871,7 +930,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
                     <td className="px-3 py-3.5 text-right">{fmtCurrency(subtotalCash, activeSymbol)}</td>
                     <td className="px-3 py-3.5 text-right">{fmtCurrency(subtotalVat, activeSymbol)}</td>
                     <td className="px-4 py-3.5 text-right text-teal-800 text-sm font-extrabold">{fmtCurrency(grandTotal, activeSymbol)}</td>
-                    <td></td>
+                    <td colSpan={2}></td>
                   </tr>
                 </tbody>
               </table>
@@ -992,6 +1051,19 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
                         className="w-full border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-right outline-none focus:border-teal-500 bg-white"
                       />
                     </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      Note / Remark for this item (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={item.note || ""}
+                      onChange={(e) => updateItem(item.id, "note", e.target.value)}
+                      placeholder="e.g. Receipt ref, attendees, or travel rationale..."
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-teal-500 bg-white shadow-2xs"
+                    />
                   </div>
                 </div>
               ))}
@@ -1187,7 +1259,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs">
                 <div>
                   <p className="text-[11px] text-teal-200/80">Claimant</p>
                   <p className="font-bold text-white mt-0.5">{claimantName || currentUser}</p>
@@ -1198,7 +1270,11 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
                 </div>
                 <div>
                   <p className="text-[11px] text-teal-200/80">Filing Date</p>
-                  <p className="font-bold text-white mt-0.5">{claimDate}</p>
+                  <p className="font-bold text-white mt-0.5">{filingDate}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-teal-200/80">Expense Date</p>
+                  <p className="font-bold text-white mt-0.5">{expenseDate || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-[11px] text-teal-200/80">Grand Total Amount</p>

@@ -61,13 +61,16 @@ export default function DeletedClaimsPage() {
   // Filter deleted claims
   let filtered = deletedClaims || [];
   if (search.trim()) {
-    const q = search.toLowerCase();
+    const q = search.trim().toLowerCase();
     filtered = filtered.filter(
       (c) =>
-        (c.id || c.claimRefNo || "").toLowerCase().includes(q) ||
-        (c.claimant || c.claimantName || "").toLowerCase().includes(q) ||
-        (c.companyName || "").toLowerCase().includes(q) ||
-        (c.title || "").toLowerCase().includes(q)
+        String(c?.id || c?.claimRefNo || "").toLowerCase().includes(q) ||
+        String(typeof c?.claimant === "string" ? c.claimant : (c?.claimant?.fullName || c?.claimant?.name || c?.claimantName || "")).toLowerCase().includes(q) ||
+        String(typeof c?.claimantId === "object" ? (c?.claimantId?._id || c?.claimantId?.username || "") : (c?.claimantId || "")).toLowerCase().includes(q) ||
+        String(c?.companyName || "").toLowerCase().includes(q) ||
+        String(c?.title || "").toLowerCase().includes(q) ||
+        String(c?.department || c?.dept || "").toLowerCase().includes(q) ||
+        String(c?.contactPerson || "").toLowerCase().includes(q)
     );
   }
 

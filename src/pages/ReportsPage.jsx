@@ -98,28 +98,31 @@ export default function ReportsPage() {
 
       // User filter
       if (selectedUser !== "all") {
-        const claimantMatch = (c.claimant || "").toLowerCase() === selectedUser.toLowerCase();
+        const claimantStr = typeof c.claimant === "string" ? c.claimant : (c.claimant?.fullName || c.claimant?.name || c.claimantName || "");
+        const claimantMatch = String(claimantStr).toLowerCase() === String(selectedUser).toLowerCase();
         if (!claimantMatch) return false;
       }
 
       // Dept filter
       if (selectedDept !== "all") {
-        if ((c.dept || "").toLowerCase() !== selectedDept.toLowerCase()) return false;
+        if (String(c.dept || c.department || "").toLowerCase() !== String(selectedDept).toLowerCase()) return false;
       }
 
       // Status filter
       if (selectedStatus !== "all") {
-        if ((c.status || "").toLowerCase() !== selectedStatus.toLowerCase()) return false;
+        if (String(c.status || "").toLowerCase() !== String(selectedStatus).toLowerCase()) return false;
       }
 
       // Search Query
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const refMatch = (c.id || "").toLowerCase().includes(q);
-        const nameMatch = (c.claimant || "").toLowerCase().includes(q);
-        const deptMatch = (c.dept || "").toLowerCase().includes(q);
-        const titleMatch = (c.title || "").toLowerCase().includes(q);
-        if (!refMatch && !nameMatch && !deptMatch && !titleMatch) return false;
+        const q = searchQuery.trim().toLowerCase();
+        const claimantStr = typeof c.claimant === "string" ? c.claimant : (c.claimant?.fullName || c.claimant?.name || c.claimantName || "");
+        const refMatch = String(c.id || c.claimRefNo || "").toLowerCase().includes(q);
+        const nameMatch = String(claimantStr).toLowerCase().includes(q);
+        const deptMatch = String(c.dept || c.department || "").toLowerCase().includes(q);
+        const titleMatch = String(c.title || "").toLowerCase().includes(q);
+        const companyMatch = String(c.companyName || "").toLowerCase().includes(q);
+        if (!refMatch && !nameMatch && !deptMatch && !titleMatch && !companyMatch) return false;
       }
 
       return true;

@@ -101,6 +101,36 @@ export default function Topbar({ role, setMobileOpen, notifications, onMarkAllRe
   const { handleNotificationClick } = useApp();
   const unread = notifications.filter((n) => !n.read).length;
 
+  const [globalSearch, setGlobalSearch] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("search") || "";
+  });
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  // Keep search input synced when URL query param changes
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setGlobalSearch(params.get("search") || "");
+  }, [location.search]);
+
+  const handleGlobalSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    const query = (globalSearch || "").trim();
+    const isClaimsListView =
+      location.pathname.startsWith("/claims") &&
+      !location.pathname.startsWith("/claims/new") &&
+      !location.pathname.startsWith("/claims/edit") &&
+      !location.pathname.startsWith("/claims/track");
+
+    const targetPath = isClaimsListView ? location.pathname : "/claims";
+    if (query) {
+      navigate(`${targetPath}?search=${encodeURIComponent(query)}`);
+    } else {
+      navigate(targetPath);
+    }
+    setMobileSearchOpen(false);
+  };
+
   // Derive page title from URL path
   const viewKey = PATH_TO_VIEW[location.pathname] || "dashboard";
   const viewTitle = VIEW_TITLES[viewKey] || "Dashboard";
@@ -143,15 +173,51 @@ export default function Topbar({ role, setMobileOpen, notifications, onMarkAllRe
         </div>
       </div>
 
-      <div className="flex items-center gap-3 sm:gap-6">
-        <div className="relative hidden md:flex items-center">
-          <Search size={15} className="absolute left-3.5 text-slate-400" />
+      <div className="flex items-center gap-2 sm:gap-6">
+        {/* Desktop Search */}
+        <form onSubmit={handleGlobalSearchSubmit} className="relative hidden md:flex items-center">
+          <button
+            type="submit"
+            className="absolute left-3 text-slate-400 hover:text-teal-700 cursor-pointer p-0.5 border-none bg-transparent flex items-center justify-center transition-colors"
+            title="Search"
+          >
+            <Search size={15} />
+          </button>
           <input
             type="text"
-            placeholder="Search here..."
-            className="pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-full w-52 focus:w-64 focus:bg-white focus:border-teal-500 outline-none text-slate-800 transition-all duration-200"
+            value={globalSearch}
+            onChange={(e) => setGlobalSearch(e.target.value)}
+            placeholder="Search company, claimant, ID..."
+            className="pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-full w-56 focus:w-72 focus:bg-white focus:border-teal-500 outline-none text-slate-800 transition-all duration-200"
           />
-        </div>
+          {globalSearch && (
+            <button
+              type="button"
+              onClick={() => {
+                setGlobalSearch("");
+                if (location.pathname.startsWith("/claims")) {
+                  navigate(location.pathname);
+                }
+              }}
+              className="absolute right-2.5 p-0.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200 cursor-pointer"
+              title="Clear search"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </form>
+
+        {/* Mobile Search Toggle Button */}
+        <button
+          type="button"
+          onClick={() => setMobileSearchOpen((v) => !v)}
+          className={`md:hidden p-2 rounded-full border transition-colors cursor-pointer ${
+            mobileSearchOpen ? "bg-teal-50 border-teal-300 text-teal-700" : "border-slate-200 text-slate-700 hover:bg-slate-100"
+          }`}
+          title="Search"
+        >
+          <Search size={16} />
+        </button>
 
         <div className="relative" ref={notifRef}>
           <button
@@ -223,6 +289,49 @@ export default function Topbar({ role, setMobileOpen, notifications, onMarkAllRe
           )}
         </div>
       </div>
+
+      {/* Mobile Search Bar Dropdown */}
+      {mobileSearchOpen && (
+        <div className="absolute top-full left-0 right-0 bg-white border-b border-slate-200 px-4 py-2.5 shadow-md flex items-center md:hidden z-30 animate-fade-in">
+          <form onSubmit={handleGlobalSearchSubmit} className="relative flex-1 flex items-center">
+            <button
+              type="submit"
+              className="absolute left-3 text-slate-400 hover:text-teal-700 cursor-pointer p-0.5 border-none bg-transparent flex items-center justify-center transition-colors"
+              title="Search"
+            >
+              <Search size={15} />
+            </button>
+            <input
+              autoFocus
+              type="text"
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              placeholder="Search company, claimant, ID..."
+              className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-full focus:bg-white focus:border-teal-500 outline-none text-slate-800"
+            />
+            {globalSearch && (
+              <button
+                type="button"
+                onClick={() => {
+                  setGlobalSearch("");
+                  if (location.pathname.startsWith("/claims")) navigate(location.pathname);
+                }}
+                className="absolute right-2.5 p-0.5 text-slate-400 hover:text-slate-600 rounded-full"
+                title="Clear search"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </form>
+          <button
+            type="button"
+            onClick={() => setMobileSearchOpen(false)}
+            className="ml-2 text-xs text-slate-500 hover:text-slate-800 font-semibold px-2 py-1 cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </header>
   );
 }
