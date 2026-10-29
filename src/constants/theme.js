@@ -36,4 +36,17 @@ export const STATUS = {
   rejected:                   { label: "Rejected",                   color: "#B91C1C", bg: "#FEE2E2" },
 };
 
-export const fmtN = (n) => "£" + (Number(n) || 0).toLocaleString();
+export const CURRENCY_SYMBOLS = {
+  GBP: "£",
+  USD: "$",
+  EUR: "€",
+  SAR: "SAR",
+  AED: "AED",
+  TRY: "₺",
+};
+
+export const fmtN = (n, currency = "GBP") => {
+  const sym = CURRENCY_SYMBOLS[currency] || (currency ? (currency.length > 1 ? `${currency} ` : currency) : "£");
+  const s = sym.length > 1 && !sym.endsWith(" ") ? `${sym} ` : sym;
+  return s + (Number(n) || 0).toLocaleString();
+};

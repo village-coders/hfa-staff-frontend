@@ -15,6 +15,7 @@ export default function DashboardClaimRow({
 }) {
   const navigate = useNavigate();
   const refNo = claim.id || claim.claimRefNo || "Claim";
+  const claimCurrency = claim.currency || (Array.isArray(claim.items) && claim.items[0]?.currency) || "GBP";
   const isPending = (claim.status || "").toLowerCase() === "pending";
 
   const pendingReason = (() => {
@@ -62,7 +63,7 @@ export default function DashboardClaimRow({
           {claim.dept || claim.department || "Operations"}
         </td>
         <td className="px-5 py-4 font-semibold text-slate-900 whitespace-nowrap">
-          {fmtN(claim.amount || 0)}
+          {fmtN(claim.amount || 0, claimCurrency)}
         </td>
         <td className="px-5 py-4 text-slate-500 whitespace-nowrap">
           <div className="text-xs font-semibold text-slate-800">
@@ -184,7 +185,7 @@ export default function DashboardClaimRow({
               onClick={(e) => e.stopPropagation()}
             >
               <span className="text-base font-black text-slate-900">
-                {fmtN(claim.amount || 0)}
+                {fmtN(claim.amount || 0, claimCurrency)}
               </span>
               <div className="flex items-center gap-1.5">
                 {isPending && (

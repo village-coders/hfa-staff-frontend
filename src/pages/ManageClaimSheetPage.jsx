@@ -200,7 +200,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
     "A correction is required by the reviewing officer before this claim can proceed.";
 
   const CATEGORY_OPTIONS = [
-    "Underground Ticket", "National Rail Ticket", "Taxi Fare", "Car Hire (inc, fuel)", "Car Millage", "Car Parking", "Fuel", "Air Fare", "Hotel Accommodation", "Lunch/Dinner", "Sundry", "Office Consumables", "Standards & Export Cert", "DHL To Dubai x2 ()", "Cash Advancement", "Other Deductions", "Telephone Expenses", "Audit Fee (External)", "Gym Allowance", "Currency exchange charges", "Charity", "HFF expense", "Rent & Rates", "Service Charges", "Office Expense", "Meeting fee", "Office Cleaning", "Remuneration Payments", "Scholars Fee", "Honorarium payments", "Postage", "Stationary exp", "Computer Repair", "Computer/IT Expense"
+    "Underground Ticket", "National Rail Ticket", "Taxi Fare", "Car Hire (inc, fuel)", "Car Millage", "Car Parking", "Fuel", "Air Fare", "Hotel Accommodation", "Lunch/Dinner", "Sundry", "Office Consumables", "Standards & Export Cert", "International Accreditation Fee", "SFDA Cert Fee", "Conference/Seminar", "DHL To Dubai x2 ()", "Cash Advancement", "Other Deductions", "Telephone Expenses", "Audit Fee (External)", "Gym Allowance", "Currency exchange charges", "Charity", "HFF expense", "Rent & Rates", "Service Charges", "Office Expense", "Meeting fee", "Office Cleaning", "Remuneration Payments", "Scholars Fee", "Honorarium payments", "Postage", "Stationary exp", "Computer Repair", "Computer/IT Expense"
   ];
 
   const TYPE_OPTIONS = ["None", "In Budget", "Not In Budget", "Not Applicable"];
@@ -210,7 +210,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
   const updateReason = (id, field, value) => { setReasons(reasons.map((r) => (r.id === id ? { ...r, [field]: value } : r))); };
 
   const addItemRow = () => {
-    setItems([...items, { id: Date.now(), type: "In Budget", category: "", currency: "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0, note: "" }]);
+    setItems([...items, { id: Date.now(), type: "In Budget", category: "", currency: items[0]?.currency || "GBP", payMode: "cash", card: 0, cash: 0, bank: 0, vat: 0, total: 0, note: "" }]);
   };
   const removeItemRow = (id) => { if (items.length > 1) setItems(items.filter((item) => item.id !== id)); };
 
@@ -256,11 +256,14 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
 
   const removeFile = (id) => { setUploadedFiles((prev) => prev.filter((f) => f.id !== id)); };
 
-  const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€" };
-  const fmtCurrency = (val, symbol = "£") => `${symbol}${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€", SAR: "SAR", AED: "AED", TRY: "₺" };
+  const fmtCurrency = (val, symbol = "£") => {
+    const s = symbol ? (symbol.length > 1 && !symbol.endsWith(" ") ? `${symbol} ` : symbol) : "";
+    return `${s}${(parseFloat(val) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   const primaryCurrency = items[0]?.currency || "GBP";
-  const activeSymbol = CURRENCY_SYMBOLS[primaryCurrency] || "£";
+  const activeSymbol = CURRENCY_SYMBOLS[primaryCurrency] || primaryCurrency || "£";
 
   const subtotalCard = items.reduce((sum, item) => sum + (parseFloat(item.card) || 0), 0);
   const subtotalCash = items.reduce((sum, item) => sum + (parseFloat(item.cash) || 0), 0);
@@ -353,6 +356,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
           grandTotal
         },
         amount: grandTotal,
+        currency: primaryCurrency,
         department: "Operations",
       });
     } else {
@@ -388,6 +392,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
           grandTotal
         },
         amount: grandTotal,
+        currency: primaryCurrency,
         department: "Operations",
       });
     }
@@ -548,7 +553,7 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
             <div>
               <p className="text-sm font-bold">Claim Submitted Successfully!</p>
               <p className="text-xs text-emerald-700 font-medium mt-0.5">
-                Reference: <span className="font-mono font-bold">{claimRefNo}</span>. Total amount logged: <span className="font-bold">{fmtN(grandTotal)}</span>.
+                Reference: <span className="font-mono font-bold">{claimRefNo}</span>. Total amount logged: <span className="font-bold">{fmtN(grandTotal, primaryCurrency)}</span>.
               </p>
             </div>
           </div>
@@ -856,9 +861,12 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
                           className="w-full border border-slate-200 rounded-xl px-2 py-2 text-xs font-semibold text-slate-800 outline-none bg-white focus:border-teal-500"
                         >
                           <option value="GBP">GBP (£)</option>
-                          <option value="USD">USD ($)</option>
-                          <option value="EUR">EUR (€)</option>
-                        </select>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="SAR">SAR (﷼)</option>
+                        <option value="AED">AED (AED)</option>
+                        <option value="TRY">TRY (₺)</option>
+                      </select>
                       </td>
                       <td className="p-3">
                         <input
@@ -1007,6 +1015,9 @@ export default function ManageClaimSheetPage({ onClose: propOnClose, claimToEdit
                         <option value="GBP">GBP (£)</option>
                         <option value="USD">USD ($)</option>
                         <option value="EUR">EUR (€)</option>
+                        <option value="SAR">SAR (﷼)</option>
+                        <option value="AED">AED (AED)</option>
+                        <option value="TRY">TRY (₺)</option>
                       </select>
                     </div>
                   </div>

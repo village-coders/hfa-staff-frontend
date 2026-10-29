@@ -330,7 +330,7 @@ export default function ClaimsPage() {
 
                     {/* Amount + Action */}
                     <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-                      <span className="text-base font-black text-slate-900">{fmtN(c.amount || 0)}</span>
+                      <span className="text-base font-black text-slate-900">{fmtN(c.amount || 0, c.currency || (Array.isArray(c.items) && c.items[0]?.currency) || "GBP")}</span>
                       <div className="flex items-center gap-1.5">
                         {isPending && (
                           <button
@@ -410,7 +410,7 @@ export default function ClaimsPage() {
                           {c.claimant || c.claimantName || "User"}
                         </td>
                         <td className="px-4 py-3.5 font-semibold text-slate-900 whitespace-nowrap">
-                          {fmtN(c.amount || 0)}
+                          {fmtN(c.amount || 0, c.currency || (Array.isArray(c.items) && c.items[0]?.currency) || "GBP")}
                         </td>
                         <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">
                           {c.filingDate || c.date || "N/A"}

@@ -112,7 +112,7 @@ export default function ClaimTrackingPage() {
           {[
             { label: "Company Name", value: claim.companyName || claim.contactPerson || "—", mono: false, teal: true },
             { label: "Claimant",    value: claim.claimant },
-            { label: "Amount",      value: fmtN(claim.amount), large: true },
+            { label: "Amount",      value: fmtN(claim.amount, claim.currency || (Array.isArray(claim.items) && claim.items[0]?.currency) || "GBP"), large: true },
             { label: "Department",  value: claim.dept || "Operations" },
             { label: "Date Filed",  value: claim.date },
             { label: "Status",      badge: true },

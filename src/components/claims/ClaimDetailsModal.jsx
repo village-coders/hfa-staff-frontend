@@ -33,12 +33,14 @@ export default function ClaimDetailsModal({ claim, onClose }) {
   const isChairman = role === "chairman" || role === "admin" || role === "super_admin";
   const isAccountant = role === "accountant" || role === "admin" || role === "super_admin";
 
-  const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€" };
-  const fmtCurrency = (val, symbol = "£") =>
-    `${symbol}${(parseFloat(val) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-  // Calculate fallback subtotals if not explicitly provided
+  const CURRENCY_SYMBOLS = { GBP: "£", USD: "$", EUR: "€", SAR: "SAR", AED: "AED", TRY: "₺" };
   const items = claim.items || [];
+  const primaryCurrency = claim.currency || items[0]?.currency || "GBP";
+  const activeSymbol = CURRENCY_SYMBOLS[primaryCurrency] || primaryCurrency || "£";
+  const fmtCurrency = (val, symbol = activeSymbol) => {
+    const s = symbol ? (symbol.length > 1 && !symbol.endsWith(" ") ? `${symbol} ` : symbol) : "";
+    return `${s}${(parseFloat(val) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
   const cardSubtotal = claim.subtotals?.subtotalCard ?? items.reduce((sum, i) => sum + (parseFloat(i.card) || 0), 0);
   const cashSubtotal = claim.subtotals?.subtotalCash ?? items.reduce((sum, i) => sum + (parseFloat(i.cash) || 0), 0);
   const vatSubtotal = claim.subtotals?.subtotalVat ?? items.reduce((sum, i) => sum + (parseFloat(i.vat) || 0), 0);
@@ -172,7 +174,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                   </div>
                   <div>
                     <p className="text-[10px] text-teal-800 font-extrabold uppercase tracking-widest">Total Claim Amount</p>
-                    <p className="font-black text-2xl text-teal-950 mt-0.5">{fmtN(grandTotal)}</p>
+                    <p className="font-black text-2xl text-teal-950 mt-0.5">{fmtN(grandTotal, primaryCurrency)}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -662,7 +664,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
                           {items.map((item, idx) => {
-                            const symbol = CURRENCY_SYMBOLS[item.currency] || "£";
+                            const symbol = CURRENCY_SYMBOLS[item.currency] || item.currency || activeSymbol;
                             return (
                               <tr key={idx} className="hover:bg-slate-50 transition-colors">
                                 <td className="px-3.5 py-2.5 font-bold text-slate-900">
@@ -1143,7 +1145,7 @@ export default function ClaimDetailsModal({ claim, onClose }) {
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-500 mb-4 font-medium px-1">
-              <span>Amount: <strong className="text-slate-900">{fmtCurrency(viewingItemNote.total || viewingItemNote.amount || 0, CURRENCY_SYMBOLS[viewingItemNote.currency] || "£")}</strong></span>
+              <span>Amount: <strong className="text-slate-900">{fmtCurrency(viewingItemNote.total || viewingItemNote.amount || 0, CURRENCY_SYMBOLS[viewingItemNote.currency] || viewingItemNote.currency || activeSymbol)}</strong></span>
               <span>Type: <strong className="text-slate-900">{viewingItemNote.type || "In Budget"}</strong></span>
             </div>
 
