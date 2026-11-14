@@ -20,14 +20,16 @@ export default function DocumentViewerModal({ file, claim, onClose }) {
   const refNo = claim?.id || claim?.claimRefNo || "Claim";
   const docDate = !file ? "" : (file.date || file.uploadDate || file.docDate || file.uploadedAt || claim?.date || "—");
 
-  // Determine whether we have a GridFS file ID to fetch
+  // Determine whether we have an S3 path or GridFS file ID to fetch from the backend API
   const rawFileId = !file || typeof file === "string" ? null : file.fileUrl || null;
-  const isGridFsId = rawFileId && !rawFileId.startsWith("http") && !rawFileId.startsWith("/") && !rawFileId.startsWith("data:");
-  const directUrl = rawFileId && !isGridFsId ? rawFileId : null;
+  const isS3Path = Boolean(rawFileId && (rawFileId.startsWith("/api/files/s3/") || rawFileId.startsWith("/api/v1/files/s3/")));
+  const isGridFsId = Boolean(rawFileId && !isS3Path && !rawFileId.startsWith("http") && !rawFileId.startsWith("/") && !rawFileId.startsWith("data:"));
+  const shouldFetchFromApi = isS3Path || isGridFsId;
+  const directUrl = rawFileId && !shouldFetchFromApi ? rawFileId : null;
 
-  // Fetch the file from GridFS with auth token and create a blob URL
+  // Fetch the file from backend (S3 or GridFS) with auth token and create a blob URL
   useEffect(() => {
-    if (!isGridFsId) return;
+    if (!shouldFetchFromApi) return;
 
     let cancelled = false;
     setLoadState("loading");
@@ -36,7 +38,11 @@ export default function DocumentViewerModal({ file, claim, onClose }) {
     const stored = localStorage.getItem("ifrs_user");
     const token = stored ? (JSON.parse(stored)?.token || "") : "";
 
-    fetch(`${API_BASE_URL}/files/${rawFileId}`, {
+    const fetchUrl = isS3Path
+      ? `${API_BASE_URL}/files/s3/${rawFileId.replace(/^\/api\/(?:v1\/)?files\/s3\//, "")}`
+      : `${API_BASE_URL}/files/${rawFileId}`;
+
+    fetch(fetchUrl, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(async (res) => {
