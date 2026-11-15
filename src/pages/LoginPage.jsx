@@ -1,16 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { Lock, XCircle } from "lucide-react";
 import { API_BASE_URL } from "../constants/theme";
 import { useApp } from "../context/AppContext";
+import RecaptchaWidget from "../components/common/RecaptchaWidget";
 import logo from "../logo.jpg";
+
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
 
 export default function LoginPage() {
   const { loggedInUser, handleLogin } = useApp();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [recaptchaToken, setRecaptchaToken] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const recaptchaRef = useRef(null);
 
   // Already logged in → redirect
   if (loggedInUser) return <Navigate to="/dashboard" replace />;
@@ -18,13 +23,23 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (RECAPTCHA_SITE_KEY && !recaptchaToken) {
+      setError("Please complete the reCAPTCHA verification.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username,
+          password,
+          ...(RECAPTCHA_SITE_KEY ? { recaptchaToken } : {}),
+        }),
       });
 
       if (res.ok) {
@@ -41,9 +56,13 @@ export default function LoginPage() {
       } else {
         const errData = await res.json().catch(() => ({}));
         setError(errData.message || "Invalid username or password. Please try again.");
+        setRecaptchaToken("");
+        recaptchaRef.current?.reset();
       }
     } catch {
       setError("Unable to connect to the backend server, please try again in a few seconds.");
+      setRecaptchaToken("");
+      recaptchaRef.current?.reset();
     }
     setIsLoading(false);
   };
@@ -128,6 +147,18 @@ export default function LoginPage() {
                   className="w-full px-4 py-3 text-xs text-slate-800 outline-none bg-white placeholder-slate-400 font-medium"
                 />
               </div>
+
+              {RECAPTCHA_SITE_KEY && (
+                <div className="pt-1">
+                  <RecaptchaWidget
+                    ref={recaptchaRef}
+                    siteKey={RECAPTCHA_SITE_KEY}
+                    theme="dark"
+                    onChange={(token) => setRecaptchaToken(token)}
+                    onExpired={() => setRecaptchaToken("")}
+                  />
+                </div>
+              )}
 
               {error && (
                 <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
