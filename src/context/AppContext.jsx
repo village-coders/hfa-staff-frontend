@@ -483,6 +483,13 @@ export function AppProvider({ children }) {
         const json = await res.json().catch(() => null);
         if (json?.data) {
           const updated = json.data;
+          const serverPaidDate = safeFormatDate(
+            updated.paidDate ||
+              (Array.isArray(updated.history) &&
+                [...updated.history]
+                  .reverse()
+                  .find((h) => (h.toStatus || h.status || "").toLowerCase() === "paid")?.timestamp)
+          );
           setClaims((prev) =>
             prev.map((c) => {
               if (c.id === id || c._id === id || c.id === updated.claimRefNo || c._id === updated._id) {
@@ -490,6 +497,7 @@ export function AppProvider({ children }) {
                   ...c,
                   status: (updated.status || newStatus).toLowerCase() === "new" ? "submitted" : (updated.status || newStatus).toLowerCase(),
                   note: updated.officerNote || note || c.note,
+                  paidDate: serverPaidDate || c.paidDate,
                   history: Array.isArray(updated.history) ? updated.history : c.history,
                 };
               }
@@ -503,6 +511,7 @@ export function AppProvider({ children }) {
                 ...prev,
                 status: (updated.status || newStatus).toLowerCase() === "new" ? "submitted" : (updated.status || newStatus).toLowerCase(),
                 note: updated.officerNote || note || prev.note,
+                paidDate: serverPaidDate || prev.paidDate,
                 history: Array.isArray(updated.history) ? updated.history : prev.history,
               };
             }

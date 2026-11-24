@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Search, FileEdit, AlertCircle, X } from "lucide-react";
+import { Search, FileEdit, AlertCircle, X, Calendar } from "lucide-react";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/ui/EmptyState";
 import Pagination from "../components/ui/Pagination";
@@ -34,27 +34,41 @@ export default function ClaimsPage() {
   const viewKey = PATH_TO_VIEW[location.pathname] || "all-claims-list";
   const item = CLAIM_ITEMS.find((i) => i.key === viewKey) || CLAIM_ITEMS[1];
   const isPaidView = viewKey === "paid-list" || item?.status === "paid";
+  const isManageList = viewKey === "all-claims-list";
+  const showPaidDateColumn = isPaidView || isManageList;
+
+  const normalizeDateStr = (val) => {
+    if (!val) return "";
+    const raw = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return "";
+  };
 
   const getPaidDate = (c) => {
-    if (!c) return "N/A";
-    if (c.paidDate) return c.paidDate;
+    if (!c) return "";
+    if (c.paidDate) {
+      const normalized = normalizeDateStr(c.paidDate);
+      if (normalized) return normalized;
+    }
     if (Array.isArray(c.history)) {
       const paidEntry = [...c.history].reverse().find(
         (h) => (h.toStatus || h.status || "").toLowerCase() === "paid"
       );
       if (paidEntry && (paidEntry.timestamp || paidEntry.date)) {
-        const d = new Date(paidEntry.timestamp || paidEntry.date);
-        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+        const normalized = normalizeDateStr(paidEntry.timestamp || paidEntry.date);
+        if (normalized) return normalized;
       }
     }
     if ((c.status || "").toLowerCase() === "paid") {
       if (c.updatedAt) {
-        const d = new Date(c.updatedAt);
-        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+        const normalized = normalizeDateStr(c.updatedAt);
+        if (normalized) return normalized;
       }
-      return c.filingDate || c.date || "N/A";
+      return normalizeDateStr(c.filingDate || c.date);
     }
-    return "N/A";
+    return "";
   };
 
   const [page, setPage] = useState(1);
@@ -63,6 +77,9 @@ export default function ClaimsPage() {
     const params = new URLSearchParams(location.search);
     return params.get("search") || "";
   });
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [dateFilterBy, setDateFilterBy] = useState("paidDate");
   const [feedbackClaim, setFeedbackClaim] = useState(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [selectedClaimForDetails, setSelectedClaimForDetails] = useState(null);
@@ -76,6 +93,14 @@ export default function ClaimsPage() {
       setPage(1);
     }
   }, [location.search]);
+
+  // Reset pagination and date range filters when switching between claim list views
+  useEffect(() => {
+    setPage(1);
+    setFromDate("");
+    setToDate("");
+    setDateFilterBy("paidDate");
+  }, [location.pathname]);
 
   let filtered = viewKey === "all-claims-list"
     ? (claims || [])
@@ -179,6 +204,29 @@ export default function ClaimsPage() {
     });
   }
 
+  if (showPaidDateColumn && (fromDate || toDate)) {
+    const effectiveFrom = fromDate && toDate && fromDate > toDate ? toDate : fromDate;
+    const effectiveTo = fromDate && toDate && fromDate > toDate ? fromDate : toDate;
+
+    filtered = filtered.filter((c) => {
+      if (!c) return false;
+      const targetDate = dateFilterBy === "filingDate"
+        ? normalizeDateStr(c.filingDate || c.date)
+        : getPaidDate(c);
+      if (!targetDate) return false;
+      if (effectiveFrom && targetDate < effectiveFrom) return false;
+      if (effectiveTo && targetDate > effectiveTo) return false;
+      return true;
+    });
+  }
+
+  const hasDateFilter = showPaidDateColumn && Boolean(fromDate || toDate);
+  const hasActiveFilters = Boolean((search && search.trim()) || hasDateFilter);
+  const activeDateLabel = dateFilterBy === "filingDate" ? "Filing Date" : "Paid Date";
+  const dateRangeSummary = hasDateFilter
+    ? `${activeDateLabel}${fromDate ? ` from ${fromDate}` : ""}${toDate ? ` to ${toDate}` : ""}`
+    : "";
+
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const submitFeedback = () => {
@@ -238,6 +286,62 @@ export default function ClaimsPage() {
         </div>
       </div>
 
+      {showPaidDateColumn && (
+        <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 flex-shrink-0">
+            <Calendar size={15} className="text-teal-600 flex-shrink-0" />
+            <span>Filter by</span>
+            <select
+              value={dateFilterBy}
+              onChange={(e) => { setDateFilterBy(e.target.value); setPage(1); }}
+              className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-teal-500 focus:bg-white transition-colors cursor-pointer"
+              aria-label="Date field to filter"
+            >
+              <option value="paidDate">Paid Date</option>
+              <option value="filingDate">Filing Date</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-2.5 flex-1 lg:justify-end">
+            <label className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 focus-within:border-teal-500 focus-within:bg-white transition-colors">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0">From</span>
+              <input
+                type="date"
+                value={fromDate}
+                max={toDate || undefined}
+                onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+                className="text-xs font-semibold text-slate-800 bg-transparent outline-none w-full lg:w-36 cursor-pointer"
+                aria-label="From date"
+              />
+            </label>
+
+            <label className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 focus-within:border-teal-500 focus-within:bg-white transition-colors">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0">To</span>
+              <input
+                type="date"
+                value={toDate}
+                min={fromDate || undefined}
+                onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+                className="text-xs font-semibold text-slate-800 bg-transparent outline-none w-full lg:w-36 cursor-pointer"
+                aria-label="To date"
+              />
+            </label>
+
+            {(fromDate || toDate) && (
+              <button
+                type="button"
+                onClick={() => { setFromDate(""); setToDate(""); setPage(1); }}
+                className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer sm:col-span-2 lg:col-span-1 flex-shrink-0"
+                title="Clear date range filter"
+              >
+                <X size={13} />
+                <span>Clear</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         {filtered.length === 0 ? (
           claimsLoading ? (
@@ -248,10 +352,15 @@ export default function ClaimsPage() {
           ) : (
             <EmptyState
               icon={item.icon}
-              title={search ? "No matching claims found" : "Nothing here yet"}
+              title={hasActiveFilters ? "No matching claims found" : "Nothing here yet"}
               subtitle={
-                search
-                  ? `No records match "${search}". Try searching by another keyword, ID, claimant or company.`
+                hasActiveFilters
+                  ? `No records match ${[
+                      search && search.trim() ? `search "${search.trim()}"` : "",
+                      dateRangeSummary,
+                    ]
+                      .filter(Boolean)
+                      .join(" and ")}.`
                   : `No claims currently sit in ${item.label.toLowerCase()}.`
               }
             />
@@ -287,10 +396,19 @@ export default function ClaimsPage() {
                     {/* Claimant + Dates */}
                     <div className="flex items-center justify-between text-xs text-slate-700 mb-1">
                       <span className="font-semibold text-slate-800">{c.claimant || c.claimantName || "User"}</span>
-                      {isPaidView ? (
-                        <span className="text-[11px] text-emerald-850 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-emerald-800">
-                          Paid: {getPaidDate(c)}
-                        </span>
+                      {showPaidDateColumn ? (
+                        (() => {
+                          const paidDate = getPaidDate(c);
+                          return paidDate ? (
+                            <span className="text-[11px] font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-emerald-800">
+                              Paid: {paidDate}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-medium bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 text-slate-500">
+                              Paid: {isPaidView ? "N/A" : "—"}
+                            </span>
+                          );
+                        })()
                       ) : (
                         <span className="text-[11px] text-teal-800 font-bold bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
                           Exp: {c.expenseDate || c.filingDate || c.date || "—"}
@@ -371,7 +489,7 @@ export default function ClaimsPage() {
                     <th className="text-left px-4 py-3 w-36 whitespace-nowrap">Claimant</th>
                     <th className="text-left px-4 py-3 w-28 whitespace-nowrap">Amount</th>
                     <th className="text-left px-4 py-3 w-28 whitespace-nowrap">Filing Date</th>
-                    <th className="text-left px-4 py-3 w-28 whitespace-nowrap">{isPaidView ? "Paid Date" : "Expense Date"}</th>
+                    <th className="text-left px-4 py-3 w-28 whitespace-nowrap">{showPaidDateColumn ? "Paid Date" : "Expense Date"}</th>
                     <th className="text-left px-3 py-3 w-32 whitespace-nowrap">Status</th>
                     <th className="text-center px-3 py-3 w-16 whitespace-nowrap">Action</th>
                   </tr>
@@ -416,10 +534,19 @@ export default function ClaimsPage() {
                           {c.filingDate || c.date || "N/A"}
                         </td>
                         <td className="px-4 py-3.5 whitespace-nowrap">
-                          {isPaidView ? (
-                            <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200 inline-block text-[11px]">
-                              {getPaidDate(c)}
-                            </span>
+                          {showPaidDateColumn ? (
+                            (() => {
+                              const paidDate = getPaidDate(c);
+                              return paidDate ? (
+                                <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200 inline-block text-[11px]">
+                                  {paidDate}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-medium text-[11px]">
+                                  {isPaidView ? "N/A" : "—"}
+                                </span>
+                              );
+                            })()
                           ) : (
                             <span className="font-bold text-teal-900 bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-200/80 inline-block text-[11px]">
                               {c.expenseDate || c.filingDate || c.date || "N/A"}
